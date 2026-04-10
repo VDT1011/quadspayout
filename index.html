@@ -407,7 +407,7 @@ const PRESETS = {
 };
 
 // Chỉ áp dụng cụm từ rank 16 trở đi
-const GROUP_SIZES = [2, 2, 3, 3, 4, 4, 5, 5, 6, 8, 12, 20, 30];
+const GROUP_SIZES = [2, 2, 3, 3, 4, 4, 5, 5, 6, 8, 12, 15, 20, 25, 30];
 
 function tierInfo(rank) {
   if (rank === 1) return { label:'CHAMPION',    bg:'rgba(201,168,76,0.18)', color:'#d4a843', border:'rgba(201,168,76,0.35)' };
@@ -555,7 +555,7 @@ function buildPayout(preset, itmCount, pool, buyin, roundFactor) {
   // XUẤT RA KẾT QUẢ VÀ LÀM TRÒN
   const results = [];
   let paid = 0;
-  const groupStarts = new Set(spots.map(sp => sp.start));
+  const Starts = new Set(spots.map(sp => sp.start));
 
   for (let i = 1; i <= itmCount; i++) {
     const amt = Math.floor(pcts[i] * pool / roundFactor) * roundFactor;
@@ -563,7 +563,7 @@ function buildPayout(preset, itmCount, pool, buyin, roundFactor) {
     paid += amt;
   }
 
-  return { results, breakage: pool - paid, rawPcts: pcts, groupStarts };
+  return { results, breakage: pool - paid, rawPcts: pcts, Starts };
 }
 
 function run() {
@@ -587,7 +587,7 @@ function run() {
 
   if (pool <= 0) return;
 
-  const { results, breakage, rawPcts, groupStarts } = buildPayout(currentPreset, itmCount, pool, buyin, roundFactor);
+  const { results, breakage, rawPcts, Starts } = buildPayout(currentPreset, itmCount, pool, buyin, roundFactor);
 
   set('stBreak', fmtVND(breakage)); set('topBreak', fmtVND(breakage));
   set('ps1', results[0] ? fmtVND(results[0].amount) : '—');
@@ -612,7 +612,7 @@ function run() {
     const ti = tierInfo(rank);
     const barW = Math.round(pct / maxPct * 100);
     const rowCls = rank <= 3 ? `r${rank}` : '';
-    const grpCls = (rank > 1 && groupStarts.has(rank)) ? 'grp-start' : '';
+    const grpCls = (rank > 1 && Starts.has(rank)) ? 'grp-start' : '';
 
     return `<tr class="${rowCls} ${grpCls}">
       <td class="td-rank${rank <= 3 ? ' hi' : ''}">#${rank}</td>
