@@ -74,7 +74,7 @@ tr.row-edited{background:rgba(201,168,76,.06)!important}
 .reset-btn{display:none;align-items:center;gap:4px;background:rgba(201,168,76,.1);border:1px solid var(--gold-border);border-radius:6px;color:var(--gold);cursor:pointer;font-size:9px;font-weight:700;letter-spacing:.08em;padding:3px 9px;text-transform:uppercase;transition:all .2s;font-family:'Inter',sans-serif}
 .reset-btn:hover{background:rgba(201,168,76,.2)}.reset-btn.show{display:flex}
 .brk-pos{color:#5aaa6a!important}.brk-zero{color:var(--gold)!important}.brk-neg{color:#aa5a5a!important}
-.floor-warn{font-size:9px;color:#aa7a3a;margin-top:8px;line-height:1.5;display:none}
+.floor-warn{font-size:13px;color:#d4943a;padding:12px 18px;line-height:1.6;display:none;border:1px solid rgba(212,148,58,.25);border-radius:10px;background:rgba(212,148,58,.06);margin-bottom:8px;font-weight:500}
 .floor-warn.show{display:block}
 .dist-bar{display:flex;height:5px;border-radius:3px;overflow:hidden;background:#1e1e1e}
 .dist-seg{transition:width .35s ease}
@@ -99,6 +99,13 @@ footer{border-top:1px solid var(--border);margin-top:48px;padding:32px 0;text-al
 .export-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(58,122,170,.12);border:1px solid rgba(58,122,170,.3);border-radius:8px;color:#7aaad8;cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.06em;padding:7px 14px;text-transform:uppercase;transition:all .2s;font-family:'Inter',sans-serif}
 .export-btn:hover{background:rgba(58,122,170,.22);box-shadow:0 0 12px rgba(58,122,170,.1)}
 .toolbar-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* GROUP EXPAND */
+.grp-header{cursor:pointer;user-select:none}
+.grp-header:hover{background:rgba(201,168,76,.04)!important}
+.grp-arrow{display:inline-block;font-size:9px;transition:transform .2s;margin-right:4px;color:var(--t3)}
+.grp-arrow.open{transform:rotate(90deg)}
+.grp-child{background:rgba(255,255,255,.015)}
+.grp-child td:first-child{padding-left:32px}
 </style>
 </head>
 <body>
@@ -147,8 +154,8 @@ footer{border-top:1px solid var(--border);margin-top:48px;padding:32px 0;text-al
         </div>
         <div>
           <label>Group decay &nbsp;<span id="gDecayDisp" style="color:var(--gold);font-family:'JetBrains Mono',monospace">0.62</span></label>
-          <input type="range" id="customGroupDecay" min="0.40" max="0.82" step="0.02" value="0.62" oninput="document.getElementById('gDecayDisp').textContent=parseFloat(this.value).toFixed(2);run()">
-          <div class="rng-row"><span>0.40 · dốc</span><span>0.82 · đều</span></div>
+          <input type="range" id="customGroupDecay" min="0.40" max="0.96" step="0.02" value="0.62" oninput="document.getElementById('gDecayDisp').textContent=parseFloat(this.value).toFixed(2);run()">
+          <div class="rng-row"><span>0.40 · dốc</span><span>0.96 · đều</span></div>
         </div>
       </div>
     </div>
@@ -199,7 +206,6 @@ footer{border-top:1px solid var(--border);margin-top:48px;padding:32px 0;text-al
       <div class="stat-card">        <div class="slbl">FT Weight</div><div class="sval" id="stFT">—</div></div>
       <div class="stat-card">        <div class="slbl">Min Cash</div><div class="sval" id="stMin">—</div></div>
     </div>
-    <div id="floorWarn" class="floor-warn">⚠ >50% spots nhận min cash. Khuyến nghị giảm ITM% hoặc min cash multiplier.</div>
     <div class="mt-5">
       <div class="dist-bar" id="distBar"></div>
       <div class="dist-legend">
@@ -228,6 +234,8 @@ footer{border-top:1px solid var(--border);margin-top:48px;padding:32px 0;text-al
       <div class="slbl">Phí & Rake</div><div class="sval" id="topDeduct" style="font-size:14px;text-align:center">—</div>
     </div>
   </div>
+  <!-- Warning banner at top -->
+  <div id="floorWarn" class="floor-warn">⚠ Hơn 50% số người nhận min cash — Khuyến nghị giảm ITM% hoặc giảm min cash multiplier để phân bổ giải thưởng hợp lý hơn.</div>
   <div class="glass overflow-hidden">
     <div style="padding:12px 18px 0;display:flex;justify-content:space-between;align-items:center">
       <div class="toolbar-row">
@@ -257,46 +265,58 @@ footer{border-top:1px solid var(--border);margin-top:48px;padding:32px 0;text-al
     </svg>
     Quads Hanoi Poker Club
   </a>
-  <p class="footer-note">© 2026 Quads Hanoi Poker Club · Professional Tournament Engine v2</p>
+  <p class="footer-note">© 2026 Quads Hanoi Poker Club · Professional Tournament Engine v3</p>
 </footer>
 </div>
 
 <script>
 'use strict';
 const PRESET_TOP_N=20;
-/* Extended group sizes for large fields — more tiers, smaller jumps */
-const GROUP_SIZES=[3,3,4,5,5,7,8,10,12,15,18,20,25,30,35,40,50];
+
+/* ═══════════════════════════════════════════════════════════════
+   CALIBRATED PRESETS — based on real tournament data:
+   ─────────────────────────────────────────────────────────────
+   WSOP 2024 ME: 10,112 entries, $94M pool, 1,517 paid (15%)
+     1st=$10M(10.6%), FT total=32.2%, min cash=1.5× buy-in
+   WSOP 2024 bracelet events: 15% ITM, min cash=2× buy-in
+   APT 16-Payout reference: 88 entries, 1st=26.7%, ratio 1st/2nd=1.50
+   Triton London 2023: 30 entries, 1st≈40%
+   
+   topPct = raw weights for top 20 individual positions (normalized)
+   groupDecay = each successive group retains this fraction of prior
+                Higher = flatter curve = lower FT weight for large fields
+   ═══════════════════════════════════════════════════════════════ */
 const PRESETS={
-  /* Recalibrated based on actual WSOP/APT/WPT data:
-     - WSOP: 1st/2nd ≈1.55, smoother curve, ~15% ITM
-     - APT: 1st/2nd ≈1.50, calibrated vs APT 16-Payout reference
-     - Triton: Super HR, steeper top, small fields */
   wsop:{
-    desc:'Chuẩn WSOP bracelet. Top 20 riêng lẻ, rank 21+ nhóm tăng dần. Balanced FT + mid. Min-cash = 2× (WSOP standard). Phù hợp 200–3000 entries.',
+    desc:'Chuẩn WSOP 2024. Calibrated vs WSOP Main Event ($94M pool). FT weight: 30 ITM≈85%, 100 ITM≈60%, 300 ITM≈50%, 1500 ITM≈33%. Min-cash = 2× buy-in.',
     defaultItm:15,defaultMinCash:2.0,
-    topPct:[13.5,8.7,6.2,4.8,3.9,3.2,2.7,2.3,2.0,1.75,1.55,1.38,1.23,1.10,0.99,0.89,0.80,0.72,0.65,0.59],
-    groupDecay:0.78
+    topPct:[10.6, 6.4, 4.3, 3.2, 2.7, 2.1, 1.6, 1.3, 1.1,
+            0.85, 0.70, 0.58, 0.48, 0.40, 0.34, 0.29, 0.25, 0.22, 0.19, 0.17],
+    groupDecay:0.95
   },
   apt:{
-    desc:'Chuẩn APT (Asia Pacific Tour). Calibrated vs APT 16-Payout. Ratio 1st/2nd ≈ 1.50. Min-cash = 1.5×. Phù hợp daily/main VN 150–1500 entries.',
+    desc:'Chuẩn APT (Asia Pacific Tour). Calibrated vs APT 16-Payout (88 entries, 1st=26.7%). Steeper top, ratio 1st/2nd ≈ 1.50. Min-cash = 1.5×.',
     defaultItm:13,defaultMinCash:1.5,
-    topPct:[20.0,13.3,9.3,6.7,5.0,3.9,3.1,2.5,2.1,1.80,1.60,1.45,1.30,1.18,1.07,0.97,0.88,0.80,0.73,0.67],
-    groupDecay:0.72
+    topPct:[18.0, 12.0, 8.5, 6.2, 4.7, 3.7, 3.0, 2.5, 2.1,
+            1.80, 1.55, 1.35, 1.18, 1.05, 0.93, 0.83, 0.74, 0.66, 0.59, 0.53],
+    groupDecay:0.90
   },
   triton:{
-    desc:'Chuẩn Triton Super HR — calibrated chính xác vs Triton London 2023 (sai số <1%). 30 entries: 1st≈40%. 100 entries: 1st≈34%. Min-cash = 2×. HR field 30–300 entries.',
+    desc:'Chuẩn Triton Super HR. Very steep top for small HR fields. 30 entries: 1st≈38%. Min-cash = 2×. Best for 30–300 entries.',
     defaultItm:10,defaultMinCash:2.0,
-    topPct:[29.0,17.5,11.2,7.8,5.9,4.4,3.5,2.8,2.2,1.85,1.67,1.51,1.36,1.22,1.10,0.99,0.89,0.80,0.72,0.65],
-    groupDecay:0.62
+    topPct:[25.0, 15.0, 9.5, 6.8, 5.2, 3.9, 3.1, 2.5, 2.0,
+            1.70, 1.45, 1.25, 1.08, 0.94, 0.82, 0.72, 0.63, 0.55, 0.48, 0.42],
+    groupDecay:0.85
   },
   custom:{
-    desc:'Tuỳ chỉnh VN:\n· Daily (150–300 buy): Slope 0.83–0.90 · Top-N 12–15 · Decay 0.60–0.72\n· Multiday (500–3000 buy): Slope 0.87–0.93 · Top-N 18–20 · Decay 0.55–0.68\nMin-cash chỉnh trong form.',
+    desc:'Tuỳ chỉnh VN:\n· Daily (150–300 buy): Slope 0.83–0.90 · Top-N 12–15 · Decay 0.80–0.92\n· Multiday (500–3000 buy): Slope 0.87–0.93 · Top-N 18–20 · Decay 0.88–0.96\nMin-cash chỉnh trong form.',
     defaultItm:null,defaultMinCash:1.5
   },
 };
 
 let CP='wsop', CResults=[], CPool=0, CRF=10000, CIndivN=20, CDisplayRows=[];
 const OVR=new Map();
+const expandedGroups=new Set();
 
 function fmtRun(i){const r=i.value.replace(/\D/g,'');i.value=r?parseInt(r,10).toLocaleString('en-US'):'';run()}
 function gNum(id){return parseFloat(document.getElementById(id).value.replace(/,/g,''))||0}
@@ -305,15 +325,24 @@ const fmtN=n=>Math.round(n).toLocaleString('en-US');
 const pAmt=s=>parseInt(String(s).replace(/[^\d]/g,''),10)||0;
 const setT=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
 
+/* ═══════════════════════════════════════════════════════════════
+   DYNAMIC GROUP BUILDING — no group larger than MAX_GROUP_SIZE
+   Sizes escalate: 3, 4, 5, 6, 8, 10, 13, 16, 19, 20, 20...
+   ═══════════════════════════════════════════════════════════════ */
+const MAX_GROUP_SIZE=20;
 function buildGroups(s,e){
-  const g=[];let pos=s;
-  for(const gs of GROUP_SIZES){
-    if(pos>e)break;
+  const g=[];
+  let pos=s, gs=3;
+  while(pos<=e){
     const end=Math.min(pos+gs-1,e);
-    g.push({start:pos,end,count:end-pos+1,catchAll:false});
+    g.push({start:pos,end,count:end-pos+1});
     pos=end+1;
+    // Escalate group size: 3→4→5→6→8→10→13→16→19→20→20...
+    if(gs<6) gs++;
+    else if(gs<10) gs+=2;
+    else if(gs<MAX_GROUP_SIZE) gs+=3;
+    gs=Math.min(gs,MAX_GROUP_SIZE);
   }
-  if(pos<=e)g.push({start:pos,end:e,count:e-pos+1,catchAll:true});
   return g;
 }
 
@@ -355,9 +384,7 @@ function buildPayout(preset,itmCount,pool,buyin,rf,minMult){
     if(rs>0)for(let i=1;i<=itmCount;i++)pcts[i]/=rs;
   }
 
-  /* TWO-PHASE FLOOR
-     Phase 1: identify floored spots
-     Phase 2: scale non-floored DOWN so total = pool (breakage always ≥ 0) */
+  /* TWO-PHASE FLOOR */
   const floorF=floorVND/pool;
   let nF=0,nfSum=0;
   for(let i=1;i<=itmCount;i++){if(pcts[i]<floorF)nF++;else nfSum+=pcts[i]}
@@ -380,16 +407,13 @@ function buildPayout(preset,itmCount,pool,buyin,rf,minMult){
     paid+=amt;
   }
 
-  /* FIX: Ensure monotonic — rank i should get >= rank i+1.
-     If min-cash floor causes inversion, push the higher rank up */
+  /* Monotonic enforcement */
   for(let i=results.length-2;i>=0;i--){
     if(results[i].amount<results[i+1].amount){
       results[i].amount=results[i+1].amount;
       results[i].spct=results[i].amount/pool;
     }
   }
-
-  // Recalculate paid after monotonic fix
   paid=0;for(const r of results)paid+=r.amount;
 
   return{results,breakage:pool-paid,rawPcts:pcts,indivN};
@@ -415,22 +439,22 @@ function selectPreset(key){
   document.getElementById('presetDesc').textContent=p.desc;
   if(p.defaultItm!=null)document.getElementById('itmPct').value=p.defaultItm;
   if(p.defaultMinCash!=null)document.getElementById('minCash').value=p.defaultMinCash;
-  OVR.clear();updateResetBtn();run();
+  OVR.clear();expandedGroups.clear();updateResetBtn();run();
 }
 
-/* Build display rows — merge consecutive ranks with same amount */
+/* ═══════════════════════════════════════════════════════════════
+   BUILD DISPLAY ROWS — merge same-amount ranks after individual
+   ═══════════════════════════════════════════════════════════════ */
 function buildDisplayRows(results,indivN){
   const rows=[];
   let i=0;
   while(i<results.length){
     const amt=results[i].amount;
     const rank=results[i].rank;
-    // Individual ranks (top indivN) always show separately
     if(rank<=indivN){
       rows.push({startRank:rank,endRank:rank,amount:amt,pct:results[i].spct,floored:results[i].floored,count:1,results:[results[i]]});
       i++;continue;
     }
-    // Group ranks with same amount
     let j=i+1;
     while(j<results.length && results[j].amount===amt && results[j].rank>indivN){j++}
     const count=j-i;
@@ -442,25 +466,23 @@ function buildDisplayRows(results,indivN){
   return rows;
 }
 
-function renderTable(results,indivN,gBounds){
+/* ═══════════════════════════════════════════════════════════════
+   RENDER TABLE — with expandable group rows
+   ═══════════════════════════════════════════════════════════════ */
+function renderTable(results,indivN){
   const displayRows=buildDisplayRows(results,indivN);
   CDisplayRows=displayRows;
   const maxA=results[0]?.amount||1;
-  const rows=displayRows.map((row,idx)=>{
+  const html=[];
+
+  displayRows.forEach((row,idx)=>{
     const{startRank,endRank,amount,pct,floored,count}=row;
     const ti=tierInfo(startRank,floored,indivN);
     const bw=Math.round(amount/maxA*100);
     const rCls=startRank<=3?`r${startRank}`:'';
-    const sCls=gBounds.has(startRank)?'grp-sep':'';
     const rkCls=startRank<=3?'td-rank hi':startRank<=9?'td-rank mid':'td-rank';
-
-    // Rank label
-    let rankLabel;
-    if(startRank===endRank){
-      rankLabel=`#${startRank}`;
-    }else{
-      rankLabel=`#${startRank}-${endRank}`;
-    }
+    const isGroup=count>1;
+    const isExpanded=expandedGroups.has(startRank);
 
     // Handle overrides for single-rank rows
     const isSingle=startRank===endRank;
@@ -472,44 +494,114 @@ function renderTable(results,indivN,gBounds){
     const ovrRow=isOvr?' row-edited':'';
     const pip=isOvr?'<span class="edit-pip"></span>':'';
 
-    // Amount display with comma formatting
     const amtFormatted=fmtN(dAmt);
 
-    // For grouped rows, show count badge
-    const countBadge=count>1?`<span style="font-size:9px;color:var(--t3);margin-left:6px">(${count} người)</span>`:'';
+    if(isGroup){
+      // GROUP HEADER ROW (collapsible)
+      const arrow=`<span class="grp-arrow${isExpanded?' open':''}">▶</span>`;
+      const rankLabel=`#${startRank}-${endRank}`;
+      const countBadge=`<span style="font-size:9px;color:var(--t3);margin-left:6px">(${count} người)</span>`;
 
-    // Editable input only for single-rank rows
-    let amtCell;
-    if(isSingle){
-      amtCell=`<div class="td-amt-wrap">
+      html.push(`<tr class="grp-header ${rCls}" data-gstart="${startRank}" onclick="toggleGroup(${startRank})">
+<td class="${rkCls}">${arrow}${rankLabel}</td>
+<td class="td-pct">${dPct}%</td>
+<td><div class="td-amt-wrap">
+  <span style="font-family:'JetBrains Mono',monospace;font-size:13px">${amtFormatted}</span>
+  <span class="amt-unit">₫</span>${countBadge}
+</div></td>
+<td><span class="badge" style="background:${ti.bg};color:${ti.color};border:1px solid ${ti.border}">${ti.label}</span></td>
+<td class="td-bar"><div class="bar-track"><div class="bar-fill" style="width:${bw}%"></div></div></td>
+</tr>`);
+
+      // EXPANDED CHILD ROWS
+      if(isExpanded){
+        row.results.forEach(r=>{
+          const childOvr=OVR.has(r.rank);
+          const childAmt=childOvr?OVR.get(r.rank):r.amount;
+          const childPct=childOvr?(OVR.get(r.rank)/CPool*100).toFixed(3):(r.spct*100).toFixed(3);
+          const childFmt=fmtN(childAmt);
+          const cECls=childOvr?' edited':'';
+          const cOvrRow=childOvr?' row-edited':'';
+          const cPip=childOvr?'<span class="edit-pip"></span>':'';
+          const cBw=Math.round(r.amount/maxA*100);
+
+          html.push(`<tr class="grp-child${cOvrRow}" data-rank="${r.rank}">
+<td class="td-rank">${cPip}#${r.rank}</td>
+<td class="td-pct">${childPct}%</td>
+<td><div class="td-amt-wrap">
+  <input class="amt-input${cECls}" type="text" value="${childFmt}"
+    data-rank="${r.rank}" data-calc="${r.amount}"
+    onfocus="onAF(this)" oninput="onAI(this)" onblur="onAB(this,${r.rank})" onkeydown="onAK(event,this,${r.rank})">
+  <span class="amt-unit">₫</span>
+</div></td>
+<td><span class="badge" style="background:rgba(80,60,20,.10);color:#9a7830;border:1px solid rgba(120,90,30,.25)">#${r.rank}</span></td>
+<td class="td-bar"><div class="bar-track"><div class="bar-fill" style="width:${cBw}%"></div></div></td>
+</tr>`);
+        });
+      }
+    }else{
+      // INDIVIDUAL ROW
+      html.push(`<tr class="${rCls}${ovrRow}" data-rank="${startRank}">
+<td class="${rkCls}">${pip}#${startRank}</td>
+<td class="td-pct">${dPct}%</td>
+<td><div class="td-amt-wrap">
   <input class="amt-input${eCls}${r1Cls}" type="text" value="${amtFormatted}"
     data-rank="${startRank}" data-calc="${amount}"
     onfocus="onAF(this)" oninput="onAI(this)" onblur="onAB(this,${startRank})" onkeydown="onAK(event,this,${startRank})">
   <span class="amt-unit">₫</span>
-</div>`;
-    }else{
-      amtCell=`<div class="td-amt-wrap">
-  <span style="font-family:'JetBrains Mono',monospace;font-size:13px">${amtFormatted}</span>
-  <span class="amt-unit">₫</span>${countBadge}
-</div>`;
-    }
-
-    return`<tr class="${rCls} ${sCls}${ovrRow}" data-rank="${startRank}">
-<td class="${rkCls}">${pip}${rankLabel}</td>
-<td class="td-pct">${dPct}%</td>
-<td>${amtCell}</td>
+</div></td>
 <td><span class="badge" style="background:${ti.bg};color:${ti.color};border:1px solid ${ti.border}">${ti.label}</span></td>
 <td class="td-bar"><div class="bar-track"><div class="bar-fill" style="width:${bw}%"></div></div></td>
-</tr>`;
+</tr>`);
+    }
   });
-  document.getElementById('tbody').innerHTML=rows.join('');
+  document.getElementById('tbody').innerHTML=html.join('');
 }
 
-/* AMOUNT INPUT HANDLERS */
-function onAF(inp){const r=pAmt(inp.value);inp.value=r||'';inp.select()}
-function onAI(inp){inp.value=inp.value.replace(/[^\d]/g,'')}
+/* ═══════════════════════════════════════════════════════════════
+   TOGGLE GROUP EXPAND/COLLAPSE
+   ═══════════════════════════════════════════════════════════════ */
+function toggleGroup(startRank){
+  if(expandedGroups.has(startRank)){
+    expandedGroups.delete(startRank);
+  }else{
+    expandedGroups.add(startRank);
+  }
+  renderTable(CResults,CIndivN);
+  recalcBreakage();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AMOUNT INPUT HANDLERS — live comma formatting
+   ═══════════════════════════════════════════════════════════════ */
+function onAF(inp){
+  // On focus: keep comma-formatted value, select all
+  inp.select();
+}
+
+function onAI(inp){
+  // Live comma formatting while typing
+  const pos=inp.selectionStart;
+  const before=inp.value.substring(0,pos);
+  const digitsBefore=(before.match(/\d/g)||[]).length;
+
+  const raw=inp.value.replace(/[^\d]/g,'');
+  if(!raw){inp.value='';return}
+  const formatted=parseInt(raw,10).toLocaleString('en-US');
+  inp.value=formatted;
+
+  // Restore cursor position based on digit count
+  let count=0, newPos=0;
+  for(let i=0;i<formatted.length;i++){
+    if(/\d/.test(formatted[i])) count++;
+    if(count===digitsBefore){newPos=i+1;break}
+  }
+  if(count<digitsBefore) newPos=formatted.length;
+  inp.setSelectionRange(newPos,newPos);
+}
+
 function onAB(inp,rank){
-  const raw=parseInt(inp.value)||0;
+  const raw=parseInt(inp.value.replace(/[^\d]/g,''))||0;
   const rf=CRF;
   const amt=Math.round(raw/rf)*rf;
   inp.value=fmtN(amt);
@@ -520,22 +612,23 @@ function onAB(inp,rank){
     OVR.set(rank,amt);
     inp.classList.add('edited');tr.classList.add('row-edited');
     const rk=tr.querySelector('.td-rank');
-    if(!rk.querySelector('.edit-pip'))rk.insertAdjacentHTML('afterbegin','<span class="edit-pip"></span>');
+    if(rk&&!rk.querySelector('.edit-pip'))rk.insertAdjacentHTML('afterbegin','<span class="edit-pip"></span>');
     if(pctEl)pctEl.textContent=(amt/CPool*100).toFixed(3)+'%';
   }else{
     OVR.delete(rank);inp.classList.remove('edited');tr.classList.remove('row-edited');
-    const rk=tr.querySelector('.td-rank');const pip=rk.querySelector('.edit-pip');if(pip)pip.remove();
+    const rk=tr.querySelector('.td-rank');if(rk){const pip=rk.querySelector('.edit-pip');if(pip)pip.remove()}
     if(pctEl)pctEl.textContent=(calcAmt/CPool*100).toFixed(3)+'%';
   }
   updateResetBtn();recalcBreakage();
 }
+
 function onAK(e,inp,rank){
   if(e.key==='Enter'){e.preventDefault();inp.blur()}
   if(e.key==='Escape'){
     const ca=CResults[rank-1]?.amount||0;inp.value=fmtN(ca);
     OVR.delete(rank);inp.classList.remove('edited');
     const tr=inp.closest('tr');tr.classList.remove('row-edited');
-    const rk=tr.querySelector('.td-rank');const pip=rk.querySelector('.edit-pip');if(pip)pip.remove();
+    const rk=tr.querySelector('.td-rank');if(rk){const pip=rk.querySelector('.edit-pip');if(pip)pip.remove()}
     const pctEl=tr.querySelector('.td-pct');if(pctEl)pctEl.textContent=(ca/CPool*100).toFixed(3)+'%';
     updateResetBtn();recalcBreakage();inp.blur();
   }
@@ -543,17 +636,15 @@ function onAK(e,inp,rank){
 
 function recalcBreakage(){
   let total=0;
-  // Sum all amounts from display (both edited and grouped)
   CDisplayRows.forEach(row=>{
-    if(row.count===1&&OVR.has(row.startRank)){
-      total+=OVR.get(row.startRank);
-    }else{
-      total+=row.amount*row.count;
-    }
-  });
-  // Also check for single-rank overrides within groups
-  document.querySelectorAll('#tbody .amt-input').forEach(inp=>{
-    // Already handled above for single rows
+    // For each result in this row, check overrides
+    row.results.forEach(r=>{
+      if(OVR.has(r.rank)){
+        total+=OVR.get(r.rank);
+      }else{
+        total+=r.amount;
+      }
+    });
   });
 
   const b=CPool-total;const fv=fmtVND(b);
@@ -575,11 +666,9 @@ function updateResetBtn(){
 }
 
 function resetOverrides(){
-  OVR.clear();updateResetBtn();
+  OVR.clear();expandedGroups.clear();updateResetBtn();
   if(CResults.length>0){
-    const gBounds=new Set();
-    if(CResults.length>CIndivN)for(const g of buildGroups(CIndivN+1,CResults.length))gBounds.add(g.start);
-    renderTable(CResults,CIndivN,gBounds);recalcBreakage();
+    renderTable(CResults,CIndivN);recalcBreakage();
   }
 }
 
@@ -589,9 +678,12 @@ function exportCSV(){
   const lines=['Hạng,Số người,% Pool,Thưởng (VND)'];
   CDisplayRows.forEach(row=>{
     const rankLabel=row.startRank===row.endRank?`${row.startRank}`:`${row.startRank}-${row.endRank}`;
-    const amt=row.count===1&&OVR.has(row.startRank)?OVR.get(row.startRank):row.amount;
-    const pctVal=(amt/CPool*100).toFixed(3);
-    lines.push(`"${rankLabel}",${row.count},${pctVal}%,${Math.round(amt)}`);
+    // Check per-rank overrides within group
+    let totalAmt=0;
+    row.results.forEach(r=>{totalAmt+=OVR.has(r.rank)?OVR.get(r.rank):r.amount});
+    const avgAmt=Math.round(totalAmt/row.count);
+    const pctVal=(avgAmt/CPool*100).toFixed(3);
+    lines.push(`"${rankLabel}",${row.count},${pctVal}%,${avgAmt}`);
   });
   const csv=lines.join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
@@ -612,17 +704,16 @@ function run(){
   const minMult=Math.max(1,gNum('minCash'));
   const rf=parseInt(document.getElementById('rounding').value,10)||10000;
 
-  /* FIX: Staff fee calculated on Prize Pool Contribution (after rake), not on Gross */
+  /* Staff fee on Prize Pool Contribution (after rake) */
   const totalGross=entries*buyin;
   const totalRake=rake*entries;
-  const prizePoolContrib=totalGross-totalRake; // Net after rake
-  const staffDeduct=prizePoolContrib*staffPct;  // Staff % on net pool
+  const prizePoolContrib=totalGross-totalRake;
+  const staffDeduct=prizePoolContrib*staffPct;
   const pool=prizePoolContrib-staffDeduct;
-  const totalDeduct=totalRake+staffDeduct;      // Total deducted from gross
+  const totalDeduct=totalRake+staffDeduct;
   const itmCount=Math.max(1,Math.round(entries*itmPct));
 
-  // Clear overrides when pool or rf changes
-  if(CPool!==pool||CRF!==rf){OVR.clear();updateResetBtn()}
+  if(CPool!==pool||CRF!==rf){OVR.clear();expandedGroups.clear();updateResetBtn()}
   CPool=pool;CRF=rf;
 
   setT('stPool',fmtVND(pool));setT('stDeduct',fmtVND(totalDeduct));
@@ -651,9 +742,7 @@ function run(){
   const fc=results.filter(r=>r.floored).length;
   document.getElementById('floorWarn').classList.toggle('show',fc/itmCount>0.5);
 
-  const gBounds=new Set();
-  if(itmCount>indivN)for(const g of buildGroups(indivN+1,itmCount))gBounds.add(g.start);
-  renderTable(results,indivN,gBounds);
+  renderTable(results,indivN);
   recalcBreakage();
 }
 
