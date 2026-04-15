@@ -106,6 +106,9 @@ footer{border-top:1px solid var(--border);margin-top:48px;padding:32px 0;text-al
 .grp-arrow.open{transform:rotate(90deg)}
 .grp-child{background:rgba(255,255,255,.015)}
 .grp-child td:first-child{padding-left:32px}
+.td-delta{font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;width:110px}
+.delta-pos{color:#7aaa6a}.delta-zero{color:var(--t4)}.delta-neg{color:#aa5a5a}
+.grp-edit-indicator{display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(201,168,76,.5);margin-left:5px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -242,14 +245,14 @@ footer{border-top:1px solid var(--border);margin-top:48px;padding:32px 0;text-al
         <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
         <button class="reset-btn show" id="resetBtn2" onclick="resetOverrides()" style="display:none">↺ Reset chỉnh sửa</button>
       </div>
-      <span style="font-size:9px;color:var(--t3);letter-spacing:.08em">Click vào số tiền để chỉnh · Enter xác nhận · Esc huỷ</span>
+      <span style="font-size:9px;color:var(--t3);letter-spacing:.08em">Click số tiền để chỉnh từng rank · Click nhóm để mở rộng/thu gọn · Enter xác nhận · Esc huỷ</span>
     </div>
     <div class="tbl-wrap">
       <table>
         <thead><tr>
           <th>Hạng</th><th>% Pool</th>
           <th class="th-gold">Thưởng (VND) ✎</th>
-          <th>Phân cấp</th><th class="td-bar">Tỷ trọng</th>
+          <th>Phân cấp</th><th class="th-gold">Chênh lệch ↕</th>
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -265,7 +268,7 @@ footer{border-top:1px solid var(--border);margin-top:48px;padding:32px 0;text-al
     </svg>
     Quads Hanoi Poker Club
   </a>
-  <p class="footer-note">© 2026 Quads Hanoi Poker Club · Professional Tournament Engine v3</p>
+  <p class="footer-note">© 2026 Quads Hanoi Poker Club · Professional Tournament Engine v4</p>
 </footer>
 </div>
 
@@ -430,6 +433,23 @@ function tierInfo(rank,floored,indivN){
 }
 
 function selectPreset(key){
+  /* When switching TO custom FROM a named preset, mirror that preset's shape in custom sliders */
+  if(key==='custom'&&CP!=='custom'){
+    const CMAP={
+      wsop:{slope:0.87,topN:20,decay:0.95},
+      apt: {slope:0.82,topN:20,decay:0.90},
+      triton:{slope:0.79,topN:20,decay:0.85}
+    };
+    const m=CMAP[CP];
+    if(m){
+      document.getElementById('customSlope').value=m.slope;
+      document.getElementById('slopeDisp').textContent=m.slope.toFixed(2);
+      document.getElementById('customGroupStart').value=m.topN;
+      document.getElementById('grpStartDisp').textContent=m.topN;
+      document.getElementById('customGroupDecay').value=m.decay;
+      document.getElementById('gDecayDisp').textContent=m.decay.toFixed(2);
+    }
+  }
   CP=key;
   document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
   const ct=document.getElementById('customToggle');ct.classList.remove('active');
@@ -467,53 +487,69 @@ function buildDisplayRows(results,indivN){
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   RENDER TABLE — with expandable group rows
+   DELTA HELPERS — chênh lệch tiền giữa các rank
+   ═══════════════════════════════════════════════════════════════ */
+function buildAllAmts(){
+  const m={};
+  CResults.forEach(r=>{m[r.rank]=OVR.has(r.rank)?OVR.get(r.rank):r.amount;});
+  return m;
+}
+function getDeltaStr(rank,allAmts){
+  const next=allAmts[rank+1];
+  if(next===undefined)return '<span class="delta-zero">—</span>';
+  const d=(allAmts[rank]||0)-next;
+  if(d>0)return `<span class="delta-pos">+${fmtN(d)} ₫</span>`;
+  if(d===0)return '<span class="delta-zero">↔ 0</span>';
+  return `<span class="delta-neg">${fmtN(d)} ₫</span>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER TABLE — with expandable group rows + group edit
    ═══════════════════════════════════════════════════════════════ */
 function renderTable(results,indivN){
   const displayRows=buildDisplayRows(results,indivN);
   CDisplayRows=displayRows;
-  const maxA=results[0]?.amount||1;
+  const allAmts=buildAllAmts();
   const html=[];
 
   displayRows.forEach((row,idx)=>{
     const{startRank,endRank,amount,pct,floored,count}=row;
     const ti=tierInfo(startRank,floored,indivN);
-    const bw=Math.round(amount/maxA*100);
     const rCls=startRank<=3?`r${startRank}`:'';
     const rkCls=startRank<=3?'td-rank hi':startRank<=9?'td-rank mid':'td-rank';
     const isGroup=count>1;
     const isExpanded=expandedGroups.has(startRank);
 
-    // Handle overrides for single-rank rows
-    const isSingle=startRank===endRank;
-    const isOvr=isSingle&&OVR.has(startRank);
-    const dAmt=isOvr?OVR.get(startRank):amount;
-    const dPct=isOvr?(OVR.get(startRank)/CPool*100).toFixed(3):(pct*100).toFixed(3);
-    const eCls=isOvr?' edited':'';
-    const r1Cls=startRank===1?' rank1':'';
-    const ovrRow=isOvr?' row-edited':'';
-    const pip=isOvr?'<span class="edit-pip"></span>':'';
-
-    const amtFormatted=fmtN(dAmt);
-
     if(isGroup){
-      // GROUP HEADER ROW (collapsible)
-      const arrow=`<span class="grp-arrow${isExpanded?' open':''}">▶</span>`;
-      const rankLabel=`#${startRank}-${endRank}`;
-      const countBadge=`<span style="font-size:9px;color:var(--t3);margin-left:6px">(${count} người)</span>`;
+      /* ── GROUP HEADER: compute effective display amount (OVR-aware) ── */
+      const grpAmtArr=row.results.map(r=>OVR.has(r.rank)?OVR.get(r.rank):r.amount);
+      const allSame=grpAmtArr.every(v=>v===grpAmtArr[0]);
+      const grpDisplayAmt=allSame?grpAmtArr[0]:row.amount;
+      const isGrpOvr=allSame&&grpAmtArr[0]!==row.amount;
+      const grpECls=isGrpOvr?' edited':'';
+      const grpOvrRow=isGrpOvr?' row-edited':'';
+      const grpPip=isGrpOvr?'<span class="grp-edit-indicator"></span>':'';
+      const grpPct=(grpDisplayAmt/CPool*100).toFixed(3);
 
-      html.push(`<tr class="grp-header ${rCls}" data-gstart="${startRank}" onclick="toggleGroup(${startRank})">
-<td class="${rkCls}">${arrow}${rankLabel}</td>
-<td class="td-pct">${dPct}%</td>
-<td><div class="td-amt-wrap">
-  <span style="font-family:'JetBrains Mono',monospace;font-size:13px">${amtFormatted}</span>
+      const arrow=`<span class="grp-arrow${isExpanded?' open':''}">▶</span>`;
+      const rankLabel=`#${startRank}–${endRank}`;
+      const countBadge=`<span style="font-size:9px;color:var(--t3);margin-left:6px">(${count}×)</span>`;
+      const deltaCell=getDeltaStr(endRank,allAmts);
+
+      html.push(`<tr class="grp-header${grpOvrRow} ${rCls}" data-gstart="${startRank}">
+<td class="${rkCls}" onclick="toggleGroup(${startRank})" style="cursor:pointer">${arrow}${rankLabel}${grpPip}</td>
+<td class="td-pct" onclick="toggleGroup(${startRank})" style="cursor:pointer">${grpPct}%</td>
+<td><div class="td-amt-wrap" onclick="event.stopPropagation()">
+  <input class="amt-input${grpECls}" type="text" value="${fmtN(grpDisplayAmt)}"
+    data-gstart="${startRank}" data-calc="${amount}"
+    onfocus="onAF(this)" oninput="onAI(this)" onblur="onABGrp(this,${startRank})" onkeydown="onAKGrp(event,this,${startRank})">
   <span class="amt-unit">₫</span>${countBadge}
 </div></td>
-<td><span class="badge" style="background:${ti.bg};color:${ti.color};border:1px solid ${ti.border}">${ti.label}</span></td>
-<td class="td-bar"><div class="bar-track"><div class="bar-fill" style="width:${bw}%"></div></div></td>
+<td onclick="toggleGroup(${startRank})" style="cursor:pointer"><span class="badge" style="background:${ti.bg};color:${ti.color};border:1px solid ${ti.border}">${ti.label}</span></td>
+<td class="td-delta" onclick="toggleGroup(${startRank})" style="cursor:pointer">${deltaCell}</td>
 </tr>`);
 
-      // EXPANDED CHILD ROWS
+      /* ── EXPANDED CHILD ROWS ── */
       if(isExpanded){
         row.results.forEach(r=>{
           const childOvr=OVR.has(r.rank);
@@ -523,7 +559,6 @@ function renderTable(results,indivN){
           const cECls=childOvr?' edited':'';
           const cOvrRow=childOvr?' row-edited':'';
           const cPip=childOvr?'<span class="edit-pip"></span>':'';
-          const cBw=Math.round(r.amount/maxA*100);
 
           html.push(`<tr class="grp-child${cOvrRow}" data-rank="${r.rank}">
 <td class="td-rank">${cPip}#${r.rank}</td>
@@ -535,12 +570,23 @@ function renderTable(results,indivN){
   <span class="amt-unit">₫</span>
 </div></td>
 <td><span class="badge" style="background:rgba(80,60,20,.10);color:#9a7830;border:1px solid rgba(120,90,30,.25)">#${r.rank}</span></td>
-<td class="td-bar"><div class="bar-track"><div class="bar-fill" style="width:${cBw}%"></div></div></td>
+<td class="td-delta">${getDeltaStr(r.rank,allAmts)}</td>
 </tr>`);
         });
       }
     }else{
-      // INDIVIDUAL ROW
+      /* ── INDIVIDUAL ROW ── */
+      const isSingle=startRank===endRank;
+      const isOvr=isSingle&&OVR.has(startRank);
+      const dAmt=isOvr?OVR.get(startRank):amount;
+      const dPct=isOvr?(OVR.get(startRank)/CPool*100).toFixed(3):(pct*100).toFixed(3);
+      const eCls=isOvr?' edited':'';
+      const r1Cls=startRank===1?' rank1':'';
+      const ovrRow=isOvr?' row-edited':'';
+      const pip=isOvr?'<span class="edit-pip"></span>':'';
+      const amtFormatted=fmtN(dAmt);
+      const deltaCell=getDeltaStr(startRank,allAmts);
+
       html.push(`<tr class="${rCls}${ovrRow}" data-rank="${startRank}">
 <td class="${rkCls}">${pip}#${startRank}</td>
 <td class="td-pct">${dPct}%</td>
@@ -551,7 +597,7 @@ function renderTable(results,indivN){
   <span class="amt-unit">₫</span>
 </div></td>
 <td><span class="badge" style="background:${ti.bg};color:${ti.color};border:1px solid ${ti.border}">${ti.label}</span></td>
-<td class="td-bar"><div class="bar-track"><div class="bar-fill" style="width:${bw}%"></div></div></td>
+<td class="td-delta">${deltaCell}</td>
 </tr>`);
     }
   });
@@ -602,35 +648,43 @@ function onAI(inp){
 
 function onAB(inp,rank){
   const raw=parseInt(inp.value.replace(/[^\d]/g,''))||0;
-  const rf=CRF;
-  const amt=Math.round(raw/rf)*rf;
-  inp.value=fmtN(amt);
+  const amt=Math.round(raw/CRF)*CRF;
   const calcAmt=CResults[rank-1]?.amount||0;
-  const tr=inp.closest('tr');
-  const pctEl=tr.querySelector('.td-pct');
-  if(amt!==calcAmt&&amt>0){
-    OVR.set(rank,amt);
-    inp.classList.add('edited');tr.classList.add('row-edited');
-    const rk=tr.querySelector('.td-rank');
-    if(rk&&!rk.querySelector('.edit-pip'))rk.insertAdjacentHTML('afterbegin','<span class="edit-pip"></span>');
-    if(pctEl)pctEl.textContent=(amt/CPool*100).toFixed(3)+'%';
-  }else{
-    OVR.delete(rank);inp.classList.remove('edited');tr.classList.remove('row-edited');
-    const rk=tr.querySelector('.td-rank');if(rk){const pip=rk.querySelector('.edit-pip');if(pip)pip.remove()}
-    if(pctEl)pctEl.textContent=(calcAmt/CPool*100).toFixed(3)+'%';
-  }
-  updateResetBtn();recalcBreakage();
+  if(amt>0&&amt!==calcAmt){OVR.set(rank,amt);}else{OVR.delete(rank);}
+  updateResetBtn();renderTable(CResults,CIndivN);recalcBreakage();
 }
 
 function onAK(e,inp,rank){
-  if(e.key==='Enter'){e.preventDefault();inp.blur()}
+  if(e.key==='Enter'){e.preventDefault();inp.blur();}
   if(e.key==='Escape'){
+    e.preventDefault();
     const ca=CResults[rank-1]?.amount||0;inp.value=fmtN(ca);
-    OVR.delete(rank);inp.classList.remove('edited');
-    const tr=inp.closest('tr');tr.classList.remove('row-edited');
-    const rk=tr.querySelector('.td-rank');if(rk){const pip=rk.querySelector('.edit-pip');if(pip)pip.remove()}
-    const pctEl=tr.querySelector('.td-pct');if(pctEl)pctEl.textContent=(ca/CPool*100).toFixed(3)+'%';
-    updateResetBtn();recalcBreakage();inp.blur();
+    inp.blur();
+  }
+}
+
+/* ── GROUP-LEVEL EDIT HANDLERS ── */
+function onABGrp(inp,startRank){
+  const raw=parseInt(inp.value.replace(/[^\d]/g,''))||0;
+  const amt=Math.round(raw/CRF)*CRF;
+  const row=CDisplayRows.find(r=>r.startRank===startRank);
+  if(!row)return;
+  const calcAmt=row.amount;
+  if(amt>0&&amt!==calcAmt){
+    row.results.forEach(r=>OVR.set(r.rank,amt));
+  }else{
+    row.results.forEach(r=>OVR.delete(r.rank));
+  }
+  updateResetBtn();renderTable(CResults,CIndivN);recalcBreakage();
+}
+
+function onAKGrp(e,inp,startRank){
+  if(e.key==='Enter'){e.preventDefault();inp.blur();}
+  if(e.key==='Escape'){
+    e.preventDefault();
+    const row=CDisplayRows.find(r=>r.startRank===startRank);
+    if(row){inp.value=fmtN(row.amount);}
+    inp.blur();
   }
 }
 
@@ -672,21 +726,36 @@ function resetOverrides(){
   }
 }
 
-/* CSV EXPORT */
+/* CSV EXPORT — full data: rank, count, amount, delta vs next rank, % pool */
 function exportCSV(){
   if(!CDisplayRows.length)return;
-  const lines=['Hạng,Số người,% Pool,Thưởng (VND)'];
-  CDisplayRows.forEach(row=>{
+  const allAmts=buildAllAmts();
+  const itmCount=CResults.length;
+
+  const lines=['\uFEFFHạng,Số người,Thưởng/người (VND),Chênh lệch rank sau (VND),% Pool,Tổng nhóm (VND)'];
+  CDisplayRows.forEach((row,idx)=>{
     const rankLabel=row.startRank===row.endRank?`${row.startRank}`:`${row.startRank}-${row.endRank}`;
-    // Check per-rank overrides within group
+    /* Per-person amount (OVR-aware) */
     let totalAmt=0;
-    row.results.forEach(r=>{totalAmt+=OVR.has(r.rank)?OVR.get(r.rank):r.amount});
+    row.results.forEach(r=>{totalAmt+=OVR.has(r.rank)?OVR.get(r.rank):r.amount;});
     const avgAmt=Math.round(totalAmt/row.count);
+    const groupTotal=totalAmt;
+
+    /* Delta vs next display row's per-person amount */
+    let delta='';
+    if(idx<CDisplayRows.length-1){
+      const nextRow=CDisplayRows[idx+1];
+      let nextTotal=0;
+      nextRow.results.forEach(r=>{nextTotal+=OVR.has(r.rank)?OVR.get(r.rank):r.amount;});
+      delta=avgAmt-Math.round(nextTotal/nextRow.count);
+    }
+
     const pctVal=(avgAmt/CPool*100).toFixed(3);
-    lines.push(`"${rankLabel}",${row.count},${pctVal}%,${avgAmt}`);
+    lines.push(`"${rankLabel}",${row.count},${avgAmt},${delta},${pctVal}%,${groupTotal}`);
   });
+
   const csv=lines.join('\n');
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
