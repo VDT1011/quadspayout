@@ -203,6 +203,7 @@ header h1{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(1.8rem,4.5v
 /* ANIMATIONS */
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .f1{animation:fadeUp .4s ease both}.f2{animation:fadeUp .4s ease .1s both}
+@keyframes pulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
 </style>
 </head>
 <body>
@@ -210,9 +211,13 @@ header h1{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(1.8rem,4.5v
 <div class="layer px-4 md:px-8 py-8 max-w-7xl mx-auto">
 
 <header class="mb-10 text-center f1">
+  <div style="display:inline-flex;align-items:center;gap:10px;background:var(--gold-dim);border:1px solid var(--gold-bd);border-radius:20px;padding:4px 14px;margin-bottom:18px">
+    <span style="width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px rgba(201,168,76,.7);flex-shrink:0;animation:pulse 2.2s ease-in-out infinite"></span>
+    <span style="font-size:8.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)">Payout Engine v1.0</span>
+  </div>
   <h1>Quads Hanoi<br>Poker Club</h1>
-  <p class="hdr-sub">Payout Engine v1.0 — Checkpoint</p>
-  <div class="gold-rule w-48 mx-auto mt-5 opacity-50"></div>
+  <p class="hdr-sub" style="letter-spacing:.38em;margin-top:10px">Tournament Payout Calculator</p>
+  <div class="gold-rule w-48 mx-auto mt-6 opacity-40"></div>
 </header>
 
 <main class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -326,6 +331,20 @@ header h1{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(1.8rem,4.5v
       <div style="font-size:9px;color:var(--t4);margin-top:5px">Phí & Rake không được tính khi dùng pool trực tiếp</div>
     </div>
 
+    <div class="hdiv" style="margin:12px 0"></div>
+
+    <!-- Auto-calibration Toggle -->
+    <div id="autoCalibBox" style="background:linear-gradient(135deg,rgba(201,168,76,.06),rgba(201,168,76,.03));border:1px solid var(--gold-bd);border-radius:10px;padding:10px 13px;margin-bottom:14px">
+      <div class="toggle-row" style="margin-bottom:5px">
+        <label class="sw"><input type="checkbox" id="autoCalibToggle" checked onchange="toggleAutoCalib()"><span class="sw-track"></span></label>
+        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">
+          <span class="toggle-lbl" style="color:var(--gold);font-size:9.5px">Auto-calibration theo field</span>
+          <span style="font-size:7.5px;background:rgba(201,168,76,.15);border:1px solid var(--gold-bd);border-radius:4px;padding:1px 6px;color:var(--gold);font-weight:700;letter-spacing:.06em;white-space:nowrap">SMART</span>
+        </div>
+      </div>
+      <div id="calibStatus" style="font-size:9px;line-height:1.6;padding-left:2px;color:var(--t4)"></div>
+    </div>
+
     <div class="grid grid-cols-2 gap-3">
       <div><label>Số người tham dự</label><input type="text" id="entries" value="200" oninput="fmtRun(this)"></div>
       <div><label>Buy-in (VNĐ)</label><input type="text" id="buyin" value="5,500,000" oninput="fmtRun(this)"></div>
@@ -415,29 +434,61 @@ header h1{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(1.8rem,4.5v
 </div>
 </main>
 
-<footer class="no-print">
-  <a href="https://www.facebook.com/quads.hanoipokerclub" target="_blank" rel="noopener"
-     style="display:inline-flex;align-items:center;gap:10px;background:var(--gold-dim);border:1px solid var(--gold-bd);border-radius:10px;color:var(--gold);font-size:12px;font-weight:600;letter-spacing:.04em;padding:11px 20px;text-decoration:none;transition:all .2s">
-    <svg width="16" height="16" fill="var(--gold)" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-    Quads Hanoi Poker Club
-  </a>
-  <p style="font-size:8.5px;color:var(--t3);letter-spacing:.2em;text-transform:uppercase;margin-top:12px">© 2026 Quads Hanoi Poker Club · Payout Engine v1.0 Checkpoint</p>
+<footer class="no-print" style="margin-top:40px;padding:32px 0 24px;border-top:1px solid var(--bd)">
+  <div style="max-width:640px;margin:0 auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:20px">
+
+    <!-- Logo & Brand -->
+    <div>
+      <div style="font-family:'Cinzel',serif;font-size:15px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;background:linear-gradient(135deg,#8a6820 0%,#d4a843 30%,#fff5c0 50%,#c9a84c 75%,#7a5810 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px">Quads Hanoi Poker Club</div>
+      <div style="font-size:8.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--t4);font-weight:600">Payout Engine v1.0</div>
+    </div>
+
+    <!-- Gold divider -->
+    <div style="width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--gold-bd),transparent)"></div>
+
+    <!-- Links -->
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center">
+      <a href="https://www.facebook.com/quads.hanoipokerclub" target="_blank" rel="noopener"
+         style="display:inline-flex;align-items:center;gap:8px;background:var(--gold-dim);border:1px solid var(--gold-bd);border-radius:8px;color:var(--gold);font-size:11px;font-weight:600;letter-spacing:.04em;padding:8px 16px;text-decoration:none;transition:all .2s"
+         onmouseover="this.style.background='rgba(201,168,76,.18)'" onmouseout="this.style.background='var(--gold-dim)'">
+        <svg width="14" height="14" fill="var(--gold)" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Facebook
+      </a>
+      <span style="color:var(--t4);font-size:11px">·</span>
+      <a href="https://www.facebook.com/quads.hanoipokerclub" target="_blank" rel="noopener"
+         style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:8px;color:var(--t2);font-size:11px;font-weight:600;letter-spacing:.04em;padding:8px 16px;text-decoration:none;transition:all .2s"
+         onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
+        Tìm chúng tôi
+      </a>
+    </div>
+
+    <!-- Copyright -->
+    <div style="font-size:8px;color:var(--t4);letter-spacing:.18em;text-transform:uppercase;line-height:1.8">
+      <span>© 2026 Quads Hanoi Poker Club</span>
+      <span style="margin:0 8px;opacity:.4">·</span>
+      <span>All rights reserved</span>
+      <span style="margin:0 8px;opacity:.4">·</span>
+      <span>Hanoi, Vietnam</span>
+    </div>
+
+  </div>
 </footer>
 </div>
 
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════
-   QUADS HANOI — Payout Engine v1.0 Checkpoint
+   QUADS HANOI — Payout Engine v1.0
    Features:
    · WPT dynamic preset (interpolates by entries 100-400)
+   · Auto-calibration: power-based field-size adjustment
    · Pool override mode (direct input, phương hướng rõ ràng)
    · Warning system: 1st%, FT flat, floor, monotonic edit
    · Breakage → Rank 1 button
    · Print layout (@media print)
-   · localStorage auto-save/restore
+   · localStorage auto-save/restore (bug-fixed)
    · Toast notifications
-   · UI improvements
    Data sources:
    · WPT: Official WPT Payout Calculator spreadsheet
    · WSOP: Circuit Planet Hollywood 2026 (3 events)
@@ -505,9 +556,85 @@ const PRESETS={
   }
 };
 
-/* ══ GLOBALS ══════════════════════════════════════════════ */
+/* ══ AUTO-CALIBRATION PROFILES ════════════════════════════
+   Mỗi preset có bảng neo (anchors) theo entries:
+   [entries, power, groupDecay]
+   power > 1.0 → top-heavy hơn (field nhỏ)
+   power < 1.0 → phân bổ phẳng hơn (field lớn)
+   groupDecay ↑ → nhóm cuối được trả đều hơn         ══ */
+const CALIB={
+  wsop:{
+    /* Calibrated từ 71→1349 entries (Planet Hollywood 2026) */
+    anchors:[[50,1.22,0.92],[200,1.0,0.95],[600,0.85,0.96],[1400,0.74,0.97]]
+  },
+  apt:{
+    /* Calibrated từ APT Jeju 2026 (50-400 entries) */
+    anchors:[[30,1.18,0.87],[150,1.0,0.90],[400,0.88,0.92]]
+  },
+  triton:{
+    /* Triton SHR — field rất nhỏ 20-100 */
+    anchors:[[15,1.12,0.81],[50,1.0,0.84],[100,0.91,0.86]]
+  }
+};
+
+function interpCalib(anchors,entries){
+  const a=anchors;
+  if(entries<=a[0][0])return{power:a[0][1],decay:a[0][2]};
+  if(entries>=a[a.length-1][0])return{power:a[a.length-1][1],decay:a[a.length-1][2]};
+  for(let i=0;i<a.length-1;i++){
+    if(entries>=a[i][0]&&entries<=a[i+1][0]){
+      const t=(entries-a[i][0])/(a[i+1][0]-a[i][0]);
+      return{power:a[i][1]+(a[i+1][1]-a[i][1])*t,decay:a[i][2]+(a[i+1][2]-a[i][2])*t};
+    }
+  }
+  return{power:1.0,decay:PRESETS[CP]?.groupDecay||0.95};
+}
+
+function updateCalibStatus(){
+  const box=document.getElementById('autoCalibBox');
+  const lbl=document.getElementById('calibStatus');
+  const tog=document.getElementById('autoCalibToggle');
+  if(!box||!lbl||!tog)return;
+
+  if(CP==='wpt'){
+    box.style.opacity='0.5';tog.disabled=true;
+    lbl.innerHTML='<span style="color:var(--gold)">WPT tự động theo entries (100–400)</span>';
+    return;
+  }
+  if(CP==='custom'){
+    box.style.opacity='0.5';tog.disabled=true;
+    lbl.innerHTML='<span style="color:var(--t4)">Custom preset — không áp dụng</span>';
+    return;
+  }
+  box.style.opacity='1';tog.disabled=false;
+
+  if(!autoCalib){
+    lbl.innerHTML='<span style="color:var(--t4)">Đã tắt — dùng thông số gốc của preset</span>';
+    return;
+  }
+
+  const cal=CALIB[CP];
+  if(!cal){lbl.textContent='';return;}
+  const{power,decay}=interpCalib(cal.anchors,CEntries||200);
+  const direction=power>1.01?'↑ Top-heavy hơn':power<0.99?'↓ Phẳng hơn':'= Giống gốc';
+  const powerPct=((power-1)*100).toFixed(0);
+  const sign=power>=1?'+':'';
+  lbl.innerHTML=`<span style="color:var(--ok)">${direction}</span>`+
+    ` · <span style="color:var(--t3)">${CEntries||'?'} người</span>`+
+    ` → Power <span style="color:var(--gold)">${sign}${powerPct}%</span>`+
+    ` · Decay <span style="color:var(--t3)">${decay.toFixed(2)}</span>`;
+}
+
+/* ══ AUTO-CALIBRATION TOGGLE ══════════════════════════════ */
+function toggleAutoCalib(){
+  autoCalib=document.getElementById('autoCalibToggle').checked;
+  updateCalibStatus();
+  run();
+}
+
 let CP='wsop',CResults=[],CPool=0,CRF=10000,CIndivN=PRESET_TOP_N,CEntries=0;
 let CDisplayRows=[],CMinCash=0;
+let autoCalib=true;
 const OVR=new Map(),expandedGroups=new Set();
 
 /* ══ UTILS ════════════════════════════════════════════════ */
@@ -601,7 +728,17 @@ function buildPayout(preset,itmCount,pool,buyin,rf,minMult){
     gDecay=p.groupDecay;
     indivN=Math.min(PRESET_TOP_N,itmCount,p.topPct.length);
     let rs=0;
-    for(let i=1;i<=indivN;i++){pcts[i]=p.topPct[i-1];rs+=pcts[i];}
+    /* AUTO-CALIBRATION: áp dụng power transform nếu bật và có profile */
+    let calPower=1.0;
+    if(autoCalib&&CALIB[preset]){
+      const cal=interpCalib(CALIB[preset].anchors,CEntries);
+      calPower=cal.power;
+      gDecay=cal.decay;
+    }
+    for(let i=1;i<=indivN;i++){
+      pcts[i]=calPower===1.0?p.topPct[i-1]:Math.pow(p.topPct[i-1],calPower);
+      rs+=pcts[i];
+    }
     if(itmCount>indivN){
       const lw=pcts[indivN];
       buildGroups(indivN+1,itmCount).forEach((g,gi)=>{
@@ -703,7 +840,7 @@ function selectPreset(key){
   document.getElementById('presetDesc').textContent=p.desc;
   if(p.defaultItm!=null)document.getElementById('itmPct').value=p.defaultItm;
   if(p.defaultMinCash!=null)document.getElementById('minCash').value=p.defaultMinCash;
-  OVR.clear();expandedGroups.clear();updateResetBtn();run();
+  OVR.clear();expandedGroups.clear();updateResetBtn();updateCalibStatus();run();
 }
 
 /* ══ DISPLAY ROWS ═════════════════════════════════════════ */
@@ -937,6 +1074,7 @@ function saveState(){
     dot&&(dot.classList.add('saving'));
     const s={
       preset:CP,
+      autoCalib:autoCalib,
       entries:document.getElementById('entries').value,
       buyin:document.getElementById('buyin').value,
       rake:document.getElementById('rake').value,
@@ -965,10 +1103,20 @@ function loadState(){
     set('entries',s.entries);set('buyin',s.buyin);set('rake',s.rake);
     set('staff',s.staff);set('itmPct',s.itmPct);set('minCash',s.minCash);
     set('rounding',s.rounding);set('directPool',s.directPool);
+    if(s.poolMode){document.getElementById('poolMode').checked=true;togglePoolMode();}
+    /* BUG FIX: Nếu preset đã là 'custom', set CP trước để tránh selectPreset
+       overwrite slider values bằng CMAP defaults (wsop→custom migration). */
+    if(s.preset==='custom')CP='custom';
+    if(s.preset&&PRESETS[s.preset])selectPreset(s.preset);
+    /* Restore custom sliders SAU selectPreset để không bị ghi đè */
     set('customSlope',s.slope);set('customGroupStart',s.grpStart);set('customGroupDecay',s.decay);
     set('slopeNum',s.slopeNum);set('grpStartNum',s.grpStartNum);set('gDecayNum',s.gDecayNum);
-    if(s.poolMode){document.getElementById('poolMode').checked=true;togglePoolMode();}
-    if(s.preset&&PRESETS[s.preset])selectPreset(s.preset);
+    /* Restore auto-calibration toggle */
+    if(s.autoCalib!=null){
+      autoCalib=!!s.autoCalib;
+      const t=document.getElementById('autoCalibToggle');
+      if(t)t.checked=autoCalib;
+    }
   }catch(e){}
 }
 
@@ -984,6 +1132,7 @@ function run(){
   const useDirectPool=document.getElementById('poolMode').checked;
 
   CEntries=entries;
+  updateCalibStatus();
 
   /* POOL CALCULATION — PHƯƠNG HƯỚNG GIẢI QUYẾT POOL OVERRIDE:
      - Auto mode:  pool = (entries×buyin − rake×entries) × (1 − staff%)
@@ -1059,6 +1208,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   loadState();
   if(!CResults.length){
     document.getElementById('presetDesc').textContent=PRESETS[CP].desc;
+    updateCalibStatus();
     run();
   }
 });
