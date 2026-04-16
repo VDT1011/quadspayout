@@ -3,256 +3,410 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quads Hanoi Poker Club | Payout Engine</title>
+<title>Quads Hanoi | Payout Engine v1.0</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root {
-  --gold:#c9a84c; --gold-bright:#f0c95e; --gold-dim:rgba(201,168,76,0.11); --gold-border:rgba(201,168,76,0.26);
-  --bg:#060606; --panel:#111; --inset:#0a0a0a; --border:rgba(255,255,255,0.08); --row-sep:rgba(255,255,255,0.05);
-  --t1:#ededed; --t2:#b8b8b8; --t3:#888; --t4:#484848;
+/* ══════ DESIGN TOKENS ══════ */
+:root{
+  --gold:#c9a84c;--gold-b:#f0c95e;--gold-dim:rgba(201,168,76,.11);--gold-bd:rgba(201,168,76,.26);
+  --bg:#060606;--panel:#111;--inset:#0a0a0a;--bd:rgba(255,255,255,.08);--row-sep:rgba(255,255,255,.05);
+  --t1:#ededed;--t2:#b8b8b8;--t3:#888;--t4:#444;--amber:#d4943a;
+  --err:#c94c4c;--warn:#d4943a;--info:#4c8ac9;--ok:#4caa5a;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");opacity:.5}
-body::after{content:'';position:fixed;top:-280px;left:50%;transform:translateX(-50%);width:900px;height:560px;z-index:0;pointer-events:none;background:radial-gradient(ellipse,rgba(201,168,76,0.05) 0%,transparent 62%)}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");opacity:.6}
+body::after{content:'';position:fixed;top:-260px;left:50%;transform:translateX(-50%);width:860px;height:520px;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse,rgba(201,168,76,.06) 0%,transparent 65%)}
 .layer{position:relative;z-index:1}
-.glass{background:var(--panel);border:1px solid var(--border);border-radius:16px;position:relative}
-.glass::before{content:'';position:absolute;top:0;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,var(--gold-border),transparent)}
-.sec-title{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);display:flex;align-items:center;gap:8px;margin-bottom:18px}
+
+/* ══════ GLASS PANELS ══════ */
+.glass{background:var(--panel);border:1px solid var(--bd);border-radius:16px;position:relative}
+.glass::before{content:'';position:absolute;top:0;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,var(--gold-bd),transparent)}
+
+/* ══════ TYPOGRAPHY ══════ */
+.sec-title{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);display:flex;align-items:center;gap:8px;margin-bottom:16px}
 .sec-title::before{content:'';flex-shrink:0;width:2px;height:12px;background:var(--gold);border-radius:2px}
-label{display:block;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:6px}
-input[type=text],input[type=number],select{background:var(--inset);border:1px solid #222;border-radius:10px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:13px;padding:10px 13px;width:100%;transition:border-color .2s,box-shadow .2s;-moz-appearance:textfield;appearance:textfield}
+label{display:block;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:5px}
+.group-lbl{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t4);margin-bottom:5px;margin-top:12px}
+.group-lbl:first-child{margin-top:0}
+
+/* ══════ INPUTS ══════ */
+input[type=text],input[type=number],select{
+  background:var(--inset);border:1px solid #222;border-radius:9px;color:var(--t1);
+  font-family:'JetBrains Mono',monospace;font-size:13px;padding:9px 12px;width:100%;
+  transition:border-color .2s,box-shadow .2s;-moz-appearance:textfield;appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none}
 input:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.1);outline:none}
+input.inp-disabled{opacity:.4;pointer-events:none}
 select{cursor:pointer}select option{background:#111}
+/* Pool toggle switch */
+.toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.toggle-lbl{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.sw{position:relative;width:38px;height:20px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0}
+.sw-track{position:absolute;inset:0;background:#222;border-radius:20px;cursor:pointer;transition:background .2s;border:1px solid #333}
+.sw input:checked+.sw-track{background:var(--gold-dim);border-color:var(--gold-bd)}
+.sw-track::after{content:'';position:absolute;width:14px;height:14px;left:3px;top:2px;background:#555;border-radius:50%;transition:transform .2s}
+.sw input:checked+.sw-track::after{transform:translateX(18px);background:var(--gold)}
+.pool-direct-wrap{background:rgba(201,168,76,.06);border:1px solid var(--gold-bd);border-radius:9px;padding:10px 12px;margin-bottom:12px;display:none}
+.pool-direct-wrap.show{display:block}
+/* Range */
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;background:#2a2a2a;border-radius:2px;border:none;padding:0;cursor:pointer}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;background:var(--gold);border-radius:50%;box-shadow:0 0 8px rgba(201,168,76,.5);transition:transform .15s}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--gold);border-radius:50%;box-shadow:0 0 7px rgba(201,168,76,.45);transition:transform .15s}
 input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
-input[type=range]::-moz-range-thumb{width:15px;height:15px;background:var(--gold);border-radius:50%;border:none}
-.rng-row{display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:5px}
-.preset-btn{background:var(--inset);border:1px solid #222;border-radius:10px;color:var(--t3);cursor:pointer;font-family:'Inter',sans-serif;padding:11px 8px;text-align:center;transition:all .2s;line-height:1.35}
-.preset-btn .pname{display:block;font-size:12px;font-weight:700;color:var(--t2)}
-.preset-btn .psub{display:block;font-size:9px;margin-top:3px;color:var(--t3);letter-spacing:.04em}
-.preset-btn:hover .pname{color:var(--t1)}.preset-btn:hover .psub{color:var(--t2)}
-.preset-btn.active{border-color:var(--gold-border);background:var(--gold-dim);box-shadow:0 0 18px rgba(201,168,76,.07)}
-.preset-btn.active .pname{color:var(--gold-bright)}.preset-btn.active .psub{color:rgba(240,201,94,.65)}
-.custom-toggle{display:flex;align-items:center;justify-content:space-between;background:var(--inset);border:1px solid #222;border-radius:10px;padding:11px 14px;cursor:pointer;transition:all .2s;color:var(--t3);width:100%;font-family:'Inter',sans-serif}
-.custom-toggle .cname{font-size:12px;font-weight:700;color:var(--t2)}.custom-toggle .csub{font-size:9px;opacity:.6;letter-spacing:.04em}
-.custom-toggle:hover .cname{color:var(--t1)}.custom-toggle.active{border-color:var(--gold-border);background:var(--gold-dim)}.custom-toggle.active .cname{color:var(--gold-bright)}
-.c-arrow{font-size:10px;color:var(--t3);transition:transform .3s}.custom-toggle.active .c-arrow{transform:rotate(180deg)}
-.custom-panel{max-height:0;overflow:hidden;transition:max-height .45s ease}.custom-panel.open{max-height:600px}
-.stat-card{background:var(--inset);border:1px solid #1e1e1e;border-radius:10px;padding:14px 15px}
-.stat-card .slbl{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--t3)}
-.stat-card .sval{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--t1);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.c-sky{border-left:2px solid #3a7aaa}.c-green{border-left:2px solid #3a8a4a}.c-amber{border-left:2px solid #aa7820}.c-rose{border-left:2px solid #aa3a3a}
-.tbl-wrap{height:64vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#2a2a2a transparent}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--gold);border-radius:50%;border:none}
+.rng-row{display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:4px}
+
+/* ══════ PRESET BUTTONS ══════ */
+.preset-wrap{position:relative}
+.preset-btn{background:var(--inset);border:1px solid #222;border-radius:9px;color:var(--t3);cursor:pointer;font-family:'Inter',sans-serif;padding:9px 6px;text-align:center;transition:all .18s;width:100%}
+.preset-btn .pn{display:block;font-size:11px;font-weight:700;color:var(--t2);letter-spacing:.02em}
+.preset-btn .ps{display:block;font-size:8.5px;margin-top:2px;color:var(--t4);letter-spacing:.03em;line-height:1.45}
+.preset-btn:hover .pn{color:var(--t1)}.preset-btn:hover .ps{color:var(--t3)}
+.preset-btn.active{border-color:var(--gold-bd);background:var(--gold-dim);box-shadow:0 0 16px rgba(201,168,76,.08)}
+.preset-btn.active .pn{color:var(--gold-b)}.preset-btn.active .ps{color:rgba(240,201,94,.6)}
+
+/* CUSTOM toggle */
+.cust-toggle{display:flex;align-items:center;justify-content:space-between;background:var(--inset);
+  border:1px solid #222;border-radius:9px;padding:9px 13px;cursor:pointer;transition:all .18s;color:var(--t3);width:100%;font-family:'Inter',sans-serif}
+.cust-toggle .pn{font-size:11px;font-weight:700;color:var(--t2)}.cust-toggle .ps{font-size:8.5px;color:var(--t4);letter-spacing:.03em}
+.cust-toggle:hover .pn{color:var(--t1)}.cust-toggle.active{border-color:var(--gold-bd);background:var(--gold-dim)}.cust-toggle.active .pn{color:var(--gold-b)}
+.c-arr{font-size:9px;color:var(--t4);transition:transform .3s}.cust-toggle.active .c-arr{transform:rotate(180deg)}
+.cust-panel{max-height:0;overflow:hidden;transition:max-height .42s ease}.cust-panel.open{max-height:960px}
+.cslider-block{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:9px;padding:10px 12px}
+.cslider-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
+.cslider-lbl{flex:1;min-width:0}
+.cslider-lbl .cl{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.cslider-lbl .cd{font-size:8.5px;color:var(--t4);margin-top:2px}
+.cslider-num{width:50px!important;flex-shrink:0;padding:4px 5px!important;font-size:11px!important;text-align:center!important;border-radius:7px!important}
+
+/* ══════ STAT CARDS ══════ */
+.stat-card{background:var(--inset);border:1px solid #1c1c1c;border-radius:9px;padding:12px 14px}
+.stat-card .sl{font-size:9.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--t3)}
+.stat-card .sv{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--t1);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-sky{border-left:2px solid #3a7aaa}.c-grn{border-left:2px solid #3a8a4a}.c-amb{border-left:2px solid #aa7820}.c-ros{border-left:2px solid #aa3a3a}
+
+/* ══════ WARNING CARDS ══════ */
+.warn-panel{display:flex;flex-direction:column;gap:6px}
+.warn-card{display:flex;align-items:flex-start;gap:9px;padding:9px 12px;border-radius:9px;font-size:11px;line-height:1.5;font-weight:500}
+.warn-card.error{background:rgba(201,76,76,.10);border:1px solid rgba(201,76,76,.30);color:#e87070}
+.warn-card.warn{background:rgba(212,148,58,.10);border:1px solid rgba(212,148,58,.30);color:#d4943a}
+.warn-card.info{background:rgba(76,138,201,.10);border:1px solid rgba(76,138,201,.30);color:#7aaad8}
+.warn-card.ok{background:rgba(76,170,90,.10);border:1px solid rgba(76,170,90,.30);color:#5cba6a}
+.warn-ic{flex-shrink:0;font-size:13px;margin-top:1px}
+
+/* ══════ TABLE ══════ */
+.tbl-wrap{height:62vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#2a2a2a transparent}
 .tbl-wrap::-webkit-scrollbar{width:3px}.tbl-wrap::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
 table{width:100%;border-collapse:collapse}
-thead th{position:sticky;top:0;z-index:10;background:#0e0e0e;border-bottom:1px solid #1e1e1e;color:var(--t3);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:13px 18px;text-align:left}
-thead th.th-gold{color:rgba(201,168,76,.65)}
-tbody tr{border-bottom:1px solid var(--row-sep);transition:background .12s}
-tbody tr:hover{background:rgba(255,255,255,.03)}
-tbody td{padding:9px 18px;vertical-align:middle}
-tr.r1{background:rgba(201,168,76,.08)}tr.r2{background:rgba(255,255,255,.03)}tr.r3{background:rgba(150,90,20,.06)}
-tr.grp-sep td{border-top:1px solid rgba(255,255,255,.08)}
-tr.row-edited{background:rgba(201,168,76,.06)!important}
-.td-rank{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);width:58px;white-space:nowrap}
+thead th{position:sticky;top:0;z-index:10;background:#0d0d0d;border-bottom:1px solid #1c1c1c;
+  color:var(--t3);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:12px 16px;text-align:left}
+thead th.th-gold{color:rgba(201,168,76,.6)}
+tbody tr{border-bottom:1px solid var(--row-sep);transition:background .1s}
+tbody tr:hover{background:rgba(255,255,255,.025)}
+tbody td{padding:8px 16px;vertical-align:middle}
+tr.r1{background:linear-gradient(90deg,rgba(201,168,76,.12),transparent)}
+tr.r2{background:rgba(255,255,255,.025)}tr.r3{background:rgba(150,90,20,.06)}
+tr.row-ed{background:rgba(201,168,76,.06)!important}tr.row-mx{background:rgba(212,148,58,.04)!important}
+tr.row-warn{background:rgba(201,76,76,.06)!important}
+
+/* TABLE CELLS */
+.td-rank{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--t3);width:58px;white-space:nowrap}
 .td-rank.hi{color:var(--gold);font-weight:600}.td-rank.mid{color:var(--t2)}
-.td-pct{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);width:82px}
-.td-amt-wrap{display:flex;align-items:center;gap:4px;min-width:155px}
-.amt-input{background:transparent;border:none;border-bottom:1px solid transparent;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;outline:none;padding:3px 4px;width:128px;cursor:default;transition:border-color .15s,background .15s;border-radius:4px 4px 0 0}
+.td-pct{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t3);width:74px}
+.td-amt-wrap{display:flex;align-items:center;gap:4px;min-width:140px}
+.amt-input{background:transparent;border:none;border-bottom:1px solid transparent;color:var(--t1);
+  font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:500;outline:none;
+  padding:3px 4px;width:115px;transition:border-color .15s,background .15s;border-radius:4px 4px 0 0}
 .amt-input:hover{cursor:text;border-bottom-color:var(--t4)}
-.amt-input:focus{border-bottom-color:var(--gold);background:rgba(201,168,76,.06);cursor:text}
-.amt-input.edited{color:var(--gold-bright)}
-.amt-input.rank1{color:var(--gold-bright);font-weight:600}
-.amt-unit{font-size:11px;color:var(--t3);flex-shrink:0}
+.amt-input:focus{border-bottom-color:var(--gold);background:rgba(201,168,76,.06)}
+.amt-input.edited{color:var(--gold-b)}.amt-input.mixed{color:var(--amber);font-style:italic}
+.amt-input.rank1{color:var(--gold-b);font-weight:600}.amt-input.warn-val{color:#e87070}
+.amt-unit{font-size:10.5px;color:var(--t3);flex-shrink:0}
 .edit-pip{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--gold);margin-right:4px;vertical-align:middle;box-shadow:0 0 5px rgba(201,168,76,.5);flex-shrink:0}
-.td-bar{width:70px}
-.bar-track{background:#1e1e1e;border-radius:2px;height:3px}.bar-fill{height:3px;border-radius:2px;background:linear-gradient(90deg,#7a5010,var(--gold))}
-.badge{display:inline-block;font-size:8px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:5px;white-space:nowrap}
-.reset-btn{display:none;align-items:center;gap:4px;background:rgba(201,168,76,.1);border:1px solid var(--gold-border);border-radius:6px;color:var(--gold);cursor:pointer;font-size:9px;font-weight:700;letter-spacing:.08em;padding:3px 9px;text-transform:uppercase;transition:all .2s;font-family:'Inter',sans-serif}
-.reset-btn:hover{background:rgba(201,168,76,.2)}.reset-btn.show{display:flex}
-.brk-pos{color:#5aaa6a!important}.brk-zero{color:var(--gold)!important}.brk-neg{color:#aa5a5a!important}
-.floor-warn{font-size:13px;color:#d4943a;padding:12px 18px;line-height:1.6;display:none;border:1px solid rgba(212,148,58,.25);border-radius:10px;background:rgba(212,148,58,.06);margin-bottom:8px;font-weight:500}
-.floor-warn.show{display:block}
-.dist-bar{display:flex;height:5px;border-radius:3px;overflow:hidden;background:#1e1e1e}
-.dist-seg{transition:width .35s ease}
-.dist-legend{display:flex;gap:14px;margin-top:7px}
-.dist-legend span{font-size:9px;color:var(--t3);letter-spacing:.04em;display:flex;align-items:center;gap:5px}
-header h1{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(2rem,5vw,3.6rem);line-height:1.1;letter-spacing:.06em;text-transform:uppercase;background:linear-gradient(135deg,#8a6820 0%,#d4a843 25%,#fff5c0 50%,#c9a84c 75%,#7a5810 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.header-sub{font-size:9px;letter-spacing:.55em;text-transform:uppercase;color:var(--t3);font-weight:600;margin-top:10px}
-.gold-rule{height:1px;background:linear-gradient(90deg,transparent,var(--gold-border),transparent)}
-.preset-desc{font-size:11px;color:var(--t2);line-height:1.7;font-style:italic;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
-.hdiv{height:1px;background:var(--border);margin:18px 0}
-.top3-card{background:var(--inset);border:1px solid #1e1e1e;border-radius:8px;padding:10px 8px;text-align:center}
-.top3-card .t3l{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
-.top3-card .t3v{font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:4px;color:var(--t2)}
-.top3-1 .t3v{color:var(--gold-bright)}
-footer{border-top:1px solid var(--border);margin-top:48px;padding:32px 0;text-align:center}
-.fb-link{display:inline-flex;align-items:center;gap:10px;background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:10px;color:var(--gold);font-size:13px;font-weight:600;letter-spacing:.04em;padding:12px 22px;text-decoration:none;transition:background .2s,box-shadow .2s}
-.fb-link:hover{background:rgba(201,168,76,.19);box-shadow:0 0 24px rgba(201,168,76,.12)}
-.fb-link svg{width:18px;height:18px;fill:var(--gold);flex-shrink:0}
-.footer-note{font-size:9px;color:var(--t3);letter-spacing:.2em;text-transform:uppercase;margin-top:14px}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.f1{animation:fadeUp .45s ease both}.f2{animation:fadeUp .45s ease .1s both}
-.export-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(58,122,170,.12);border:1px solid rgba(58,122,170,.3);border-radius:8px;color:#7aaad8;cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.06em;padding:7px 14px;text-transform:uppercase;transition:all .2s;font-family:'Inter',sans-serif}
-.export-btn:hover{background:rgba(58,122,170,.22);box-shadow:0 0 12px rgba(58,122,170,.1)}
-.toolbar-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-/* GROUP EXPAND */
-.grp-header{cursor:pointer;user-select:none}
-.grp-header:hover{background:rgba(201,168,76,.04)!important}
-.grp-arrow{display:inline-block;font-size:9px;transition:transform .2s;margin-right:4px;color:var(--t3)}
-.grp-arrow.open{transform:rotate(90deg)}
-.grp-child{background:rgba(255,255,255,.015)}
-.grp-child td:first-child{padding-left:32px}
-.td-delta{font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;width:110px}
+.mix-pip{display:inline-block;font-size:8.5px;color:var(--amber);margin-right:3px;font-weight:700;vertical-align:middle}
+.badge{display:inline-block;font-size:7.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:3px 8px;border-radius:4px;white-space:nowrap}
+.td-delta{font-family:'JetBrains Mono',monospace;font-size:10.5px;white-space:nowrap;min-width:100px}
 .delta-pos{color:#7aaa6a}.delta-zero{color:var(--t4)}.delta-neg{color:#aa5a5a}
-.grp-edit-indicator{display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(201,168,76,.5);margin-left:5px;vertical-align:middle}
+.grp-arrow{display:inline-block;font-size:8.5px;transition:transform .2s;margin-right:3px;color:var(--t3)}
+.grp-arrow.open{transform:rotate(90deg)}
+.grp-child{background:rgba(255,255,255,.012)}.grp-child td:first-child{padding-left:30px}
+.grp-header{user-select:none}.grp-header:hover td{background:rgba(201,168,76,.03)}
+
+/* ══════ BUTTONS ══════ */
+.btn-reset{display:none;align-items:center;gap:4px;background:rgba(201,168,76,.1);border:1px solid var(--gold-bd);border-radius:6px;color:var(--gold);cursor:pointer;font-size:8.5px;font-weight:700;letter-spacing:.08em;padding:3px 9px;text-transform:uppercase;transition:all .18s;font-family:'Inter',sans-serif}
+.btn-reset:hover{background:rgba(201,168,76,.2)}
+.btn-export{display:inline-flex;align-items:center;gap:5px;background:rgba(58,122,170,.12);border:1px solid rgba(58,122,170,.28);border-radius:7px;color:#7aaad8;cursor:pointer;font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:6px 13px;text-transform:uppercase;transition:all .18s;font-family:'Inter',sans-serif}
+.btn-export:hover{background:rgba(58,122,170,.22)}
+.btn-brk{display:inline-flex;align-items:center;gap:5px;background:rgba(76,170,90,.10);border:1px solid rgba(76,170,90,.28);border-radius:7px;color:#5cba6a;cursor:pointer;font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:6px 13px;text-transform:uppercase;transition:all .18s;font-family:'Inter',sans-serif}
+.btn-brk:hover{background:rgba(76,170,90,.20)}.btn-brk.disabled{opacity:.35;cursor:not-allowed}
+.btn-print{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:7px;color:var(--t2);cursor:pointer;font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:6px 13px;text-transform:uppercase;transition:all .18s;font-family:'Inter',sans-serif}
+.btn-print:hover{background:rgba(255,255,255,.1)}
+.toolbar-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+
+/* ══════ MISC STYLES ══════ */
+.brk-pos{color:#5aaa6a!important}.brk-zero{color:var(--gold)!important}.brk-neg{color:#aa5a5a!important}
+.dist-bar{display:flex;height:4px;border-radius:3px;overflow:hidden;background:#1c1c1c}
+.dist-seg{transition:width .32s ease}
+.dist-legend{display:flex;gap:12px;margin-top:6px}
+.dist-legend span{font-size:8.5px;color:var(--t3);letter-spacing:.04em;display:flex;align-items:center;gap:4px}
+header h1{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(1.8rem,4.5vw,3.4rem);line-height:1.1;letter-spacing:.06em;text-transform:uppercase;
+  background:linear-gradient(135deg,#8a6820 0%,#d4a843 25%,#fff5c0 50%,#c9a84c 75%,#7a5810 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr-sub{font-size:9px;letter-spacing:.5em;text-transform:uppercase;color:var(--t3);font-weight:600;margin-top:8px}
+.gold-rule{height:1px;background:linear-gradient(90deg,transparent,var(--gold-bd),transparent)}
+.preset-desc{font-size:10.5px;color:var(--t2);line-height:1.7;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)}
+.hdiv{height:1px;background:var(--bd);margin:16px 0}
+.top3-card{background:var(--inset);border:1px solid #1c1c1c;border-radius:7px;padding:9px 7px;text-align:center}
+.top3-card .t3l{font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.top3-card .t3v{font-family:'JetBrains Mono',monospace;font-size:10.5px;margin-top:3px;color:var(--t2)}
+.top3-1 .t3v{color:var(--gold-b)}
+.save-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#3a8a4a;margin-left:5px;vertical-align:middle;transition:opacity .4s}
+.save-dot.saving{background:var(--amber)}
+
+/* ══════ TOAST ══════ */
+#toast{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast-item{background:#1c1c1c;border-radius:10px;padding:10px 16px;font-size:11.5px;font-weight:500;
+  box-shadow:0 4px 24px rgba(0,0,0,.6);opacity:0;transform:translateY(12px);transition:all .28s ease;
+  pointer-events:auto;max-width:320px;line-height:1.5;border-left:3px solid var(--gold)}
+.toast-item.warn-t{border-left-color:var(--err);color:#e87070}
+.toast-item.info-t{border-left-color:var(--info);color:#7aaad8}
+.toast-item.ok-t{border-left-color:var(--ok);color:#5cba6a}
+.toast-item.show{opacity:1;transform:translateY(0)}
+
+/* ══════ PRINT ══════ */
+@media print{
+  body{background:#fff!important;color:#111!important}
+  body::before,body::after{display:none!important}
+  .f1,.f2{animation:none!important}
+  aside,.btn-export,.btn-brk,.btn-print,.btn-reset,.toolbar-row .btn-reset,
+  #toastArea,#toast,.no-print,footer{display:none!important}
+  .glass{background:#fff!important;border:1px solid #ddd!important;box-shadow:none!important}
+  .glass::before{display:none!important}
+  .tbl-wrap{height:auto!important;overflow:visible!important}
+  table{font-size:11px}
+  thead th{background:#f5f5f5!important;color:#333!important;border-bottom:1px solid #ccc!important}
+  tbody td{color:#111!important}
+  .amt-input{color:#111!important;border:none!important}
+  .badge{border:1px solid #ccc!important;color:#333!important;background:#f0f0f0!important}
+  .td-rank.hi{color:#8a6820!important}.td-rank.mid{color:#555!important}
+  .delta-pos{color:#3a8a3a!important}.delta-neg{color:#aa3a3a!important}
+  .print-header{display:block!important}
+  @page{margin:15mm}
+}
+.print-header{display:none;font-family:'Inter',sans-serif;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #ccc}
+.print-header h2{font-size:16px;font-weight:700;color:#111}
+.print-header p{font-size:11px;color:#555;margin-top:3px}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.f1{animation:fadeUp .4s ease both}.f2{animation:fadeUp .4s ease .1s both}
 </style>
 </head>
 <body>
+<div id="toast"></div>
 <div class="layer px-4 md:px-8 py-8 max-w-7xl mx-auto">
 
 <header class="mb-10 text-center f1">
   <h1>Quads Hanoi<br>Poker Club</h1>
-  <p class="header-sub">Professional Tournament Payout Engine</p>
-  <div class="gold-rule w-52 mx-auto mt-6 opacity-50"></div>
+  <p class="hdr-sub">Payout Engine v1.0 — Checkpoint</p>
+  <div class="gold-rule w-48 mx-auto mt-5 opacity-50"></div>
 </header>
 
 <main class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+<!-- ══════ SIDEBAR ══════ -->
 <aside class="lg:col-span-4 space-y-5 f1">
 
-  <!-- PRESET -->
-  <div class="glass p-6">
-    <div class="sec-title">Cấu trúc giải</div>
-    <div class="grid grid-cols-3 gap-2 mb-3">
-      <button class="preset-btn active" data-p="wsop" onclick="selectPreset('wsop')">
-        <span class="pname">WSOP</span><span class="psub">15% · 2× min</span>
-      </button>
-      <button class="preset-btn" data-p="apt" onclick="selectPreset('apt')">
-        <span class="pname">APT</span><span class="psub">13% · 1.5× min</span>
-      </button>
-      <button class="preset-btn" data-p="triton" onclick="selectPreset('triton')">
-        <span class="pname">TRITON</span><span class="psub">10% · 2× min</span>
+  <!-- PRESET CARD -->
+  <div class="glass p-5">
+    <div class="sec-title">Cấu trúc giải <span class="save-dot" id="saveDot" title="Auto-saved"></span></div>
+
+    <!-- WPT -->
+    <div class="group-lbl">WPT — World Poker Tour</div>
+    <div class="mb-3">
+      <button class="preset-btn" data-p="wpt" onclick="selectPreset('wpt')" style="padding:9px 12px">
+        <span style="display:flex;justify-content:space-between;align-items:center">
+          <span class="pn" style="text-align:left">WPT Main Tour</span>
+          <span class="ps" style="text-align:right;margin-top:0">12.5% · 2× min</span>
+        </span>
+        <span class="ps" style="display:block;text-align:left;margin-top:4px;font-size:8px;color:var(--t4)">100 – 400 người · Điều chỉnh tự động theo field</span>
       </button>
     </div>
-    <button class="custom-toggle" id="customToggle" onclick="selectPreset('custom')">
-      <span style="display:flex;align-items:center;gap:9px">
-        <span class="cname">CUSTOM</span><span class="csub">Daily · Multiday VN</span>
-      </span>
-      <span class="c-arrow">▼</span>
-    </button>
-    <div class="custom-panel" id="customPanel">
-      <div class="pt-5 space-y-4">
-        <div>
-          <label>Slope &nbsp;<span id="slopeDisp" style="color:var(--gold);font-family:'JetBrains Mono',monospace">0.87</span></label>
-          <input type="range" id="customSlope" min="0.70" max="0.97" step="0.01" value="0.87" oninput="document.getElementById('slopeDisp').textContent=parseFloat(this.value).toFixed(2);run()">
-          <div class="rng-row"><span>0.70 · top-heavy</span><span>0.97 · phẳng</span></div>
+
+    <!-- Quốc tế -->
+    <div class="group-lbl">Quốc tế</div>
+    <div class="grid grid-cols-3 gap-2 mb-3">
+      <div>
+        <button class="preset-btn active" data-p="wsop" onclick="selectPreset('wsop')">
+          <span class="pn">WSOP</span>
+          <span class="ps">15% · 2× min<br>50 – 2000+</span>
+        </button>
+      </div>
+      <div>
+        <button class="preset-btn" data-p="apt" onclick="selectPreset('apt')">
+          <span class="pn">APT</span>
+          <span class="ps">13% · 1.5× min<br>50 – 400</span>
+        </button>
+      </div>
+      <div>
+        <button class="preset-btn" data-p="triton" onclick="selectPreset('triton')">
+          <span class="pn">TRITON</span>
+          <span class="ps">10% · 2× min<br>20 – 100</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Custom -->
+    <div class="group-lbl">Tuỳ chỉnh</div>
+    <div class="preset-wrap">
+      <button class="cust-toggle" id="custToggle" onclick="selectPreset('custom')">
+        <span style="display:flex;flex-direction:column;align-items:flex-start">
+          <span class="pn">CUSTOM</span>
+          <span class="ps">Cấu hình thủ công</span>
+        </span>
+        <span class="c-arr">▼</span>
+      </button>
+    </div>
+    <div class="cust-panel" id="custPanel">
+      <div class="pt-3 space-y-3">
+        <div class="cslider-block">
+          <div class="cslider-hdr">
+            <div class="cslider-lbl"><div class="cl">Độ dốc rank</div><div class="cd">w(i) = slope^(i−1)</div></div>
+            <input type="number" id="slopeNum" class="cslider-num" value="0.87" min="0.70" max="0.97" step="0.01"
+              oninput="syncNum('slopeNum','customSlope',0.70,0.97,2)" onblur="clampNum('slopeNum','customSlope',0.70,0.97,2)">
+          </div>
+          <input type="range" id="customSlope" min="0.70" max="0.97" step="0.01" value="0.87" oninput="syncSlider('customSlope','slopeNum',2)">
+          <div class="rng-row"><span>0.70 · Dốc mạnh</span><span>0.97 · Phân đều</span></div>
         </div>
-        <div>
-          <label>Individual top N &nbsp;<span id="grpStartDisp" style="color:var(--gold);font-family:'JetBrains Mono',monospace">15</span></label>
-          <input type="range" id="customGroupStart" min="9" max="20" step="1" value="15" oninput="document.getElementById('grpStartDisp').textContent=parseInt(this.value);run()">
-          <div class="rng-row"><span>9 · Daily nhỏ</span><span>20 · Multiday lớn</span></div>
+        <div class="cslider-block">
+          <div class="cslider-hdr">
+            <div class="cslider-lbl"><div class="cl">Rank lẻ đầu bảng</div><div class="cd">Rank 1→N hiển thị riêng</div></div>
+            <input type="number" id="grpStartNum" class="cslider-num" value="15" min="9" max="20" step="1"
+              oninput="syncNum('grpStartNum','customGroupStart',9,20,0)" onblur="clampNum('grpStartNum','customGroupStart',9,20,0)">
+          </div>
+          <input type="range" id="customGroupStart" min="9" max="20" step="1" value="15" oninput="syncSlider('customGroupStart','grpStartNum',0)">
+          <div class="rng-row"><span>9 · Daily</span><span>20 · Multiday</span></div>
         </div>
-        <div>
-          <label>Group decay &nbsp;<span id="gDecayDisp" style="color:var(--gold);font-family:'JetBrains Mono',monospace">0.62</span></label>
-          <input type="range" id="customGroupDecay" min="0.40" max="0.96" step="0.02" value="0.62" oninput="document.getElementById('gDecayDisp').textContent=parseFloat(this.value).toFixed(2);run()">
-          <div class="rng-row"><span>0.40 · dốc</span><span>0.96 · đều</span></div>
+        <div class="cslider-block">
+          <div class="cslider-hdr">
+            <div class="cslider-lbl"><div class="cl">Suy giảm nhóm</div><div class="cd">w_nhóm(k) = w_cuối × decay^k</div></div>
+            <input type="number" id="gDecayNum" class="cslider-num" value="0.82" min="0.40" max="0.96" step="0.02"
+              oninput="syncNum('gDecayNum','customGroupDecay',0.40,0.96,2)" onblur="clampNum('gDecayNum','customGroupDecay',0.40,0.96,2)">
+          </div>
+          <input type="range" id="customGroupDecay" min="0.40" max="0.96" step="0.02" value="0.82" oninput="syncSlider('customGroupDecay','gDecayNum',2)">
+          <div class="rng-row"><span>0.40 · Nhóm dốc mạnh</span><span>0.96 · Gần đều</span></div>
         </div>
       </div>
     </div>
+
     <p class="preset-desc" id="presetDesc"></p>
     <div class="hdiv"></div>
     <div class="grid grid-cols-3 gap-2">
       <div class="top3-card top3-1"><div class="t3l">1st</div><div class="t3v" id="ps1">—</div></div>
-      <div class="top3-card">       <div class="t3l">2nd</div><div class="t3v" id="ps2">—</div></div>
-      <div class="top3-card">       <div class="t3l">3rd</div><div class="t3v" id="ps3">—</div></div>
+      <div class="top3-card"><div class="t3l">2nd</div><div class="t3v" id="ps2">—</div></div>
+      <div class="top3-card"><div class="t3l">3rd</div><div class="t3v" id="ps3">—</div></div>
     </div>
   </div>
 
-  <!-- PARAMS -->
-  <div class="glass p-6">
+  <!-- PARAMS CARD -->
+  <div class="glass p-5">
     <div class="sec-title">Thông số giải</div>
-    <div class="grid grid-cols-2 gap-4">
-      <div><label>Entries</label><input type="text" id="entries" value="200" oninput="fmtRun(this)"></div>
+
+    <!-- Pool Mode Toggle -->
+    <div class="toggle-row">
+      <label class="sw"><input type="checkbox" id="poolMode" onchange="togglePoolMode()"><span class="sw-track"></span></label>
+      <span class="toggle-lbl">Nhập pool trực tiếp</span>
+    </div>
+    <div class="pool-direct-wrap" id="poolDirectWrap">
+      <label>Prize Pool (nhập trực tiếp)</label>
+      <input type="text" id="directPool" value="" placeholder="vd: 100,000,000" oninput="fmtRun(this)">
+      <div style="font-size:9px;color:var(--t4);margin-top:5px">Phí & Rake không được tính khi dùng pool trực tiếp</div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div><label>Số người tham dự</label><input type="text" id="entries" value="200" oninput="fmtRun(this)"></div>
       <div><label>Buy-in (VNĐ)</label><input type="text" id="buyin" value="5,500,000" oninput="fmtRun(this)"></div>
-      <div><label>Rake / head</label><input type="text" id="rake" value="500,000" oninput="fmtRun(this)"></div>
-      <div><label>Staff (%)</label><input type="number" id="staff" value="3" step="0.5" oninput="run()"></div>
-      <div><label>ITM (%)</label><input type="number" id="itmPct" value="15" min="5" max="25" step="0.5" oninput="run()"></div>
+      <div id="rakeWrap"><label>Rake / người (VNĐ)</label><input type="text" id="rake" value="500,000" oninput="fmtRun(this)"></div>
+      <div id="staffWrap"><label>Vận hành (%)</label><input type="number" id="staff" value="3" step="0.5" min="0" max="20" oninput="run()"></div>
+      <div><label>ITM (%)</label><input type="number" id="itmPct" value="15" min="5" max="30" step="0.5" oninput="run()"></div>
       <div><label>Min Cash (× buy-in)</label><input type="number" id="minCash" value="2" min="1" max="5" step="0.1" oninput="run()"></div>
-      <div class="col-span-2">
-        <label>Làm tròn</label>
+      <div class="col-span-2"><label>Làm tròn</label>
         <select id="rounding" onchange="run()">
-          <option value="10000" selected>Chục nghìn</option>
-          <option value="100000">Trăm nghìn</option>
-          <option value="1000000">Hàng triệu</option>
+          <option value="10000" selected>Chục nghìn (10K)</option>
+          <option value="100000">Trăm nghìn (100K)</option>
+          <option value="1000000">Hàng triệu (1M)</option>
         </select>
       </div>
     </div>
   </div>
 
-  <!-- STATS -->
-  <div class="glass p-6">
+  <!-- STATS CARD -->
+  <div class="glass p-5">
     <div class="sec-title">Tổng quan</div>
-    <div class="grid grid-cols-2 gap-3">
-      <div class="stat-card c-sky">  <div class="slbl">Prize Pool</div><div class="sval" id="stPool">—</div></div>
-      <div class="stat-card c-green">
+    <div class="grid grid-cols-2 gap-2">
+      <div class="stat-card c-sky"><div class="sl">Prize Pool</div><div class="sv" id="stPool">—</div></div>
+      <div class="stat-card c-grn">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
-          <div class="slbl">Breakage</div>
-          <button class="reset-btn" id="resetBtn" onclick="resetOverrides()">↺ Reset</button>
+          <div class="sl">Breakage</div>
+          <button class="btn-reset" id="resetBtn" onclick="resetOverrides()">↺ Reset</button>
         </div>
-        <div class="sval" id="stBreak">—</div>
+        <div class="sv" id="stBreak">—</div>
       </div>
-      <div class="stat-card c-amber"><div class="slbl">ITM Spots</div><div class="sval" id="stItm">—</div></div>
-      <div class="stat-card c-rose"> <div class="slbl">Phí & Rake</div><div class="sval" id="stDeduct">—</div></div>
-      <div class="stat-card">        <div class="slbl">FT Weight</div><div class="sval" id="stFT">—</div></div>
-      <div class="stat-card">        <div class="slbl">Min Cash</div><div class="sval" id="stMin">—</div></div>
+      <div class="stat-card c-amb"><div class="sl">Số người ITM</div><div class="sv" id="stItm">—</div></div>
+      <div class="stat-card c-ros"><div class="sl">Phí &amp; Rake</div><div class="sv" id="stDeduct">—</div></div>
+      <div class="stat-card"><div class="sl">FT / Pool</div><div class="sv" id="stFT">—</div></div>
+      <div class="stat-card"><div class="sl">Min Cash</div><div class="sv" id="stMin">—</div></div>
     </div>
-    <div class="mt-5">
+    <div class="mt-4">
       <div class="dist-bar" id="distBar"></div>
       <div class="dist-legend">
-        <span><span style="color:var(--gold);font-size:10px">■</span> FT</span>
-        <span><span style="color:#4a7aaa;font-size:10px">■</span> ITM</span>
-        <span><span style="color:#3a7a3a;font-size:10px">■</span> Nhóm+</span>
+        <span><span style="color:var(--gold);font-size:10px">■</span> FT (9)</span>
+        <span><span style="color:#4a7aaa;font-size:10px">■</span> ITM lẻ</span>
+        <span><span style="color:#3a7a3a;font-size:10px">■</span> Nhóm</span>
       </div>
     </div>
   </div>
 
 </aside>
 
-<!-- TABLE -->
-<div class="lg:col-span-8 space-y-5 f2">
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <div class="glass p-4 stat-card c-sky text-center">
-      <div class="slbl">Prize Pool</div><div class="sval" id="topPool" style="font-size:14px;text-align:center">—</div>
-    </div>
-    <div class="glass p-4 stat-card c-green text-center">
-      <div class="slbl">Breakage</div><div class="sval" id="topBreak" style="font-size:14px;text-align:center">—</div>
-    </div>
-    <div class="glass p-4 stat-card c-amber text-center">
-      <div class="slbl">FT Weight</div><div class="sval" id="topFT" style="font-size:14px;text-align:center">—</div>
-    </div>
-    <div class="glass p-4 stat-card c-rose text-center">
-      <div class="slbl">Phí & Rake</div><div class="sval" id="topDeduct" style="font-size:14px;text-align:center">—</div>
-    </div>
+<!-- ══════ TABLE AREA ══════ -->
+<div class="lg:col-span-8 space-y-4 f2">
+
+  <!-- Top stat row -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="glass p-4 stat-card c-sky text-center"><div class="sl">Prize Pool</div><div class="sv" id="topPool" style="font-size:13px;text-align:center">—</div></div>
+    <div class="glass p-4 stat-card c-grn text-center"><div class="sl">Breakage</div><div class="sv" id="topBreak" style="font-size:13px;text-align:center">—</div></div>
+    <div class="glass p-4 stat-card c-amb text-center"><div class="sl">FT / Pool</div><div class="sv" id="topFT" style="font-size:13px;text-align:center">—</div></div>
+    <div class="glass p-4 stat-card c-ros text-center"><div class="sl">Phí &amp; Rake</div><div class="sv" id="topDeduct" style="font-size:13px;text-align:center">—</div></div>
   </div>
-  <!-- Warning banner at top -->
-  <div id="floorWarn" class="floor-warn">⚠ Hơn 50% số người nhận min cash — Khuyến nghị giảm ITM% hoặc giảm min cash multiplier để phân bổ giải thưởng hợp lý hơn.</div>
+
+  <!-- Warnings panel -->
+  <div id="warnPanel" class="warn-panel" style="display:none"></div>
+
+  <!-- Table -->
   <div class="glass overflow-hidden">
-    <div style="padding:12px 18px 0;display:flex;justify-content:space-between;align-items:center">
+    <!-- Print header (hidden on screen) -->
+    <div class="print-header" style="padding:16px 20px">
+      <h2 id="printTitle">Quads Hanoi Poker Club — Bảng Phân Giải</h2>
+      <p id="printMeta"></p>
+    </div>
+
+    <div style="padding:11px 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px">
       <div class="toolbar-row">
-        <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
-        <button class="reset-btn show" id="resetBtn2" onclick="resetOverrides()" style="display:none">↺ Reset chỉnh sửa</button>
+        <button class="btn-export" onclick="exportCSV()">⬇ CSV</button>
+        <button class="btn-brk disabled" id="brkBtn" onclick="applyBreakageToRank1()">↑ Breakage → Rank 1</button>
+        <button class="btn-print no-print" onclick="window.print()">🖨 In</button>
+        <button class="btn-reset" id="resetBtn2" onclick="resetOverrides()" style="display:none">↺ Reset sửa</button>
       </div>
-      <span style="font-size:9px;color:var(--t3);letter-spacing:.08em">Click số tiền để chỉnh từng rank · Click nhóm để mở rộng/thu gọn · Enter xác nhận · Esc huỷ</span>
+      <span style="font-size:8.5px;color:var(--t4);letter-spacing:.05em">Click số tiền để sửa · Click nhóm để mở · Enter xác nhận · Esc huỷ</span>
     </div>
     <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th>Hạng</th><th>% Pool</th>
-          <th class="th-gold">Thưởng (VND) ✎</th>
-          <th>Phân cấp</th><th class="th-gold">Chênh lệch ↕</th>
+          <th>Hạng</th><th>% Pool</th><th class="th-gold">Thưởng (VNĐ) ✎</th><th>Phân cấp</th><th class="th-gold">Chênh lệch ↕</th>
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -261,128 +415,200 @@ footer{border-top:1px solid var(--border);margin-top:48px;padding:32px 0;text-al
 </div>
 </main>
 
-<footer>
-  <a href="https://www.facebook.com/quads.hanoipokerclub" target="_blank" rel="noopener" class="fb-link">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-    </svg>
+<footer class="no-print">
+  <a href="https://www.facebook.com/quads.hanoipokerclub" target="_blank" rel="noopener"
+     style="display:inline-flex;align-items:center;gap:10px;background:var(--gold-dim);border:1px solid var(--gold-bd);border-radius:10px;color:var(--gold);font-size:12px;font-weight:600;letter-spacing:.04em;padding:11px 20px;text-decoration:none;transition:all .2s">
+    <svg width="16" height="16" fill="var(--gold)" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
     Quads Hanoi Poker Club
   </a>
-  <p class="footer-note">© 2026 Quads Hanoi Poker Club · Professional Tournament Engine v4</p>
+  <p style="font-size:8.5px;color:var(--t3);letter-spacing:.2em;text-transform:uppercase;margin-top:12px">© 2026 Quads Hanoi Poker Club · Payout Engine v1.0 Checkpoint</p>
 </footer>
 </div>
 
 <script>
 'use strict';
-const PRESET_TOP_N=20;
+/* ═══════════════════════════════════════════════════════
+   QUADS HANOI — Payout Engine v1.0 Checkpoint
+   Features:
+   · WPT dynamic preset (interpolates by entries 100-400)
+   · Pool override mode (direct input, phương hướng rõ ràng)
+   · Warning system: 1st%, FT flat, floor, monotonic edit
+   · Breakage → Rank 1 button
+   · Print layout (@media print)
+   · localStorage auto-save/restore
+   · Toast notifications
+   · UI improvements
+   Data sources:
+   · WPT: Official WPT Payout Calculator spreadsheet
+   · WSOP: Circuit Planet Hollywood 2026 (3 events)
+   · APT: Jeju 2026 Main + Taiwan 2025 (2 events)
+   · Triton: Super High Roller structure
+   ═══════════════════════════════════════════════════════ */
 
-/* ═══════════════════════════════════════════════════════════════
-   CALIBRATED PRESETS — based on real tournament data:
-   ─────────────────────────────────────────────────────────────
-   WSOP 2024 ME: 10,112 entries, $94M pool, 1,517 paid (15%)
-     1st=$10M(10.6%), FT total=32.2%, min cash=1.5× buy-in
-   WSOP 2024 bracelet events: 15% ITM, min cash=2× buy-in
-   APT 16-Payout reference: 88 entries, 1st=26.7%, ratio 1st/2nd=1.50
-   Triton London 2023: 30 entries, 1st≈40%
-   
-   topPct = raw weights for top 20 individual positions (normalized)
-   groupDecay = each successive group retains this fraction of prior
-                Higher = flatter curve = lower FT weight for large fields
-   ═══════════════════════════════════════════════════════════════ */
+const PRESET_TOP_N = 20;
+const STORAGE_KEY  = 'quads_payout_v1';
+
+/* ══ WPT DYNAMIC ANCHORS (from WPT Official Payout Calculator)
+   Values are % of pool at that entry count (1-in-8 structure)
+   Anchor 100P: column "97-104 entries" from Payout B sheet
+   Anchor 250P: column "249-256 entries"
+   Anchor 400P: column "401-408 entries" (approx)        ══ */
+const WPT_A100=[30.50,18.75,11.50,7.50,5.85,4.675,3.975,3.45,3.05,2.75,2.75,2.75,2.50,2.35,2.25,1.95,1.925,1.825,1.50,1.40];
+const WPT_A250=[22.976,16.681,10.250,6.235,4.815,3.990,3.400,2.965,2.544,2.165,2.165,2.165,1.850,1.850,1.850,1.535,1.535,1.535,1.225,1.225];
+const WPT_A400=[20.910,14.639,9.373,6.165,4.735,3.938,3.295,2.698,2.091,1.742,1.742,1.742,1.480,1.480,1.480,1.208,1.208,1.208,1.005,1.005];
+
+function wptForEntries(entries){
+  const e=Math.max(80,Math.min(400,entries));
+  let pct,decay;
+  if(e<=100){pct=WPT_A100.slice();decay=0.94;}
+  else if(e<=250){
+    const t=(e-100)/150;
+    pct=WPT_A100.map((v,i)=>v+(WPT_A250[i]-v)*t);
+    decay=0.94-0.06*t;
+  }else{
+    const t=(e-250)/150;
+    pct=WPT_A250.map((v,i)=>v+(WPT_A400[i]-v)*t);
+    decay=0.88-0.04*t;
+  }
+  return{pct,decay};
+}
+
+/* ══ STATIC PRESETS ══════════════════════════════════════ */
 const PRESETS={
+  wpt:{
+    desc:'WPT Main Tour. Cấu trúc 1-in-8 (12.5% ITM). Tự động điều chỉnh phân bổ theo số người tham dự (100–400). Dựa trên bảng tính WPT Official Payout Calculator.',
+    defaultItm:12.5, defaultMinCash:2.0,
+    topPct:null, groupDecay:null // computed dynamically
+  },
   wsop:{
-    desc:'Chuẩn WSOP 2024. Calibrated vs WSOP Main Event ($94M pool). FT weight: 30 ITM≈85%, 100 ITM≈60%, 300 ITM≈50%, 1500 ITM≈33%. Min-cash = 2× buy-in.',
-    defaultItm:15,defaultMinCash:2.0,
-    topPct:[10.6, 6.4, 4.3, 3.2, 2.7, 2.1, 1.6, 1.3, 1.1,
-            0.85, 0.70, 0.58, 0.48, 0.40, 0.34, 0.29, 0.25, 0.22, 0.19, 0.17],
+    desc:'WSOP Circuit 2026. Calibrated từ 3 event tại Planet Hollywood: 71–1349 entries. Phân bổ đều hơn APT/WPT, phù hợp field lớn. 1st ≈ 13–28% tuỳ field.',
+    defaultItm:15, defaultMinCash:2.0,
+    topPct:[14.0,9.0,6.2,4.5,3.4,2.55,1.92,1.52,1.18,0.95,0.95,0.78,0.78,0.64,0.64,0.64,0.64,0.53,0.53,0.53],
     groupDecay:0.95
   },
   apt:{
-    desc:'Chuẩn APT (Asia Pacific Tour). Calibrated vs APT 16-Payout (88 entries, 1st=26.7%). Steeper top, ratio 1st/2nd ≈ 1.50. Min-cash = 1.5×.',
-    defaultItm:13,defaultMinCash:1.5,
-    topPct:[18.0, 12.0, 8.5, 6.2, 4.7, 3.7, 3.0, 2.5, 2.1,
-            1.80, 1.55, 1.35, 1.18, 1.05, 0.93, 0.83, 0.74, 0.66, 0.59, 0.53],
+    desc:'APT Asia Pacific Tour. Calibrated từ APT Jeju 2026 Main Event & APT Taiwan 2025 (Ultra Stack). Top-heavy hơn WSOP, 1st/2nd ratio ≈ 1.7. Phù hợp field 50–400.',
+    defaultItm:13, defaultMinCash:1.5,
+    topPct:[25.0,14.8,10.0,7.3,5.8,4.4,3.3,2.55,2.05,1.72,1.72,1.48,1.48,1.28,1.28,1.10,1.10,0.96,0.96,0.96],
     groupDecay:0.90
   },
   triton:{
-    desc:'Chuẩn Triton Super HR. Very steep top for small HR fields. 30 entries: 1st≈38%. Min-cash = 2×. Best for 30–300 entries.',
-    defaultItm:10,defaultMinCash:2.0,
-    topPct:[25.0, 15.0, 9.5, 6.8, 5.2, 3.9, 3.1, 2.5, 2.0,
-            1.70, 1.45, 1.25, 1.08, 0.94, 0.82, 0.72, 0.63, 0.55, 0.48, 0.42],
-    groupDecay:0.85
+    desc:'Triton Super High Roller. Rất dốc về đỉnh — 1st ≈ 30–45%, 1st/2nd ratio ≈ 1.65. Chỉ phù hợp field nhỏ 20–100 người.',
+    defaultItm:10, defaultMinCash:2.0,
+    topPct:[28.0,16.5,10.5,7.2,5.5,4.1,3.2,2.6,2.1,1.75,1.50,1.28,1.10,0.95,0.82,0.72,0.63,0.55,0.48,0.42],
+    groupDecay:0.84
   },
   custom:{
-    desc:'Tuỳ chỉnh VN:\n· Daily (150–300 buy): Slope 0.83–0.90 · Top-N 12–15 · Decay 0.80–0.92\n· Multiday (500–3000 buy): Slope 0.87–0.93 · Top-N 18–20 · Decay 0.88–0.96\nMin-cash chỉnh trong form.',
-    defaultItm:null,defaultMinCash:1.5
-  },
+    desc:'Tuỳ chỉnh: sử dụng slope (độ dốc rank), số rank lẻ và hệ số suy giảm nhóm để tạo cấu trúc riêng.',
+    defaultItm:null, defaultMinCash:1.5,
+    topPct:null, groupDecay:null
+  }
 };
 
-let CP='wsop', CResults=[], CPool=0, CRF=10000, CIndivN=20, CDisplayRows=[];
-const OVR=new Map();
-const expandedGroups=new Set();
+/* ══ GLOBALS ══════════════════════════════════════════════ */
+let CP='wsop',CResults=[],CPool=0,CRF=10000,CIndivN=PRESET_TOP_N,CEntries=0;
+let CDisplayRows=[],CMinCash=0;
+const OVR=new Map(),expandedGroups=new Set();
 
-function fmtRun(i){const r=i.value.replace(/\D/g,'');i.value=r?parseInt(r,10).toLocaleString('en-US'):'';run()}
-function gNum(id){return parseFloat(document.getElementById(id).value.replace(/,/g,''))||0}
+/* ══ UTILS ════════════════════════════════════════════════ */
+function fmtRun(i){const r=i.value.replace(/\D/g,'');i.value=r?parseInt(r,10).toLocaleString('en-US'):'';run();}
+function gNum(id){return parseFloat(document.getElementById(id).value.replace(/,/g,''))||0;}
 const fmtVND=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n))+' ₫';
-const fmtN=n=>Math.round(n).toLocaleString('en-US');
-const pAmt=s=>parseInt(String(s).replace(/[^\d]/g,''),10)||0;
-const setT=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
+const fmtN  =n=>Math.round(n).toLocaleString('en-US');
+const setT  =(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
 
-/* ═══════════════════════════════════════════════════════════════
-   DYNAMIC GROUP BUILDING — no group larger than MAX_GROUP_SIZE
-   Sizes escalate: 3, 4, 5, 6, 8, 10, 13, 16, 19, 20, 20...
-   ═══════════════════════════════════════════════════════════════ */
-const MAX_GROUP_SIZE=20;
+/* ══ TOAST ════════════════════════════════════════════════ */
+const toastContainer=document.getElementById('toast');
+function showToast(msg,type='info',dur=3200){
+  const el=document.createElement('div');
+  el.className=`toast-item ${type}-t`;
+  el.textContent=msg;
+  toastContainer.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
+  setTimeout(()=>{
+    el.classList.remove('show');
+    setTimeout(()=>el.remove(),350);
+  },dur);
+}
+
+/* ══ POOL MODE TOGGLE ═════════════════════════════════════ */
+function togglePoolMode(){
+  const on=document.getElementById('poolMode').checked;
+  document.getElementById('poolDirectWrap').classList.toggle('show',on);
+  document.getElementById('rakeWrap').querySelector('input').classList.toggle('inp-disabled',on);
+  document.getElementById('staffWrap').querySelector('input').classList.toggle('inp-disabled',on);
+  run();
+}
+
+/* ══ SLIDER SYNC ══════════════════════════════════════════ */
+function syncSlider(sId,nId,dec){const v=parseFloat(document.getElementById(sId).value);document.getElementById(nId).value=dec>0?v.toFixed(dec):Math.round(v);run();}
+function syncNum(nId,sId,mn,mx,dec){const raw=parseFloat(document.getElementById(nId).value);if(isNaN(raw)||raw<mn||raw>mx)return;document.getElementById(sId).value=raw;run();}
+function clampNum(nId,sId,mn,mx,dec){const raw=parseFloat(document.getElementById(nId).value);const v=isNaN(raw)?mn:Math.max(mn,Math.min(mx,raw));document.getElementById(nId).value=dec>0?v.toFixed(dec):Math.round(v);document.getElementById(sId).value=v;run();}
+
+/* ══ GROUP BUILDING ═══════════════════════════════════════ */
 function buildGroups(s,e){
-  const g=[];
-  let pos=s, gs=3;
+  const g=[];let pos=s,gs=3;
   while(pos<=e){
     const end=Math.min(pos+gs-1,e);
     g.push({start:pos,end,count:end-pos+1});
     pos=end+1;
-    // Escalate group size: 3→4→5→6→8→10→13→16→19→20→20...
-    if(gs<6) gs++;
-    else if(gs<10) gs+=2;
-    else if(gs<MAX_GROUP_SIZE) gs+=3;
-    gs=Math.min(gs,MAX_GROUP_SIZE);
+    if(gs<6)gs++;else if(gs<10)gs+=2;else if(gs<20)gs+=3;
+    gs=Math.min(gs,20);
   }
   return g;
 }
 
+/* ══ CORE ENGINE ══════════════════════════════════════════ */
 function buildPayout(preset,itmCount,pool,buyin,rf,minMult){
-  if(itmCount<1||pool<=0)return{results:[],breakage:0,rawPcts:new Array(itmCount+1).fill(0),indivN:0};
+  if(itmCount<1||pool<=0)return{results:[],rawPcts:new Array(itmCount+1).fill(0),indivN:0};
   const floorVND=buyin*minMult;
   const pcts=new Array(itmCount+1).fill(0);
-  let indivN;
+  let indivN,gDecay;
 
   if(preset==='custom'){
     const slope=parseFloat(document.getElementById('customSlope').value)||0.87;
     const gStart=parseInt(document.getElementById('customGroupStart').value)||15;
-    const gDecay=parseFloat(document.getElementById('customGroupDecay').value)||0.62;
+    gDecay=parseFloat(document.getElementById('customGroupDecay').value)||0.82;
     indivN=Math.min(gStart,itmCount);
     let rs=0;
-    for(let i=1;i<=indivN;i++){pcts[i]=Math.pow(slope,i-1);rs+=pcts[i]}
+    for(let i=1;i<=indivN;i++){pcts[i]=Math.pow(slope,i-1);rs+=pcts[i];}
     if(itmCount>indivN){
-      const lw=pcts[indivN];const groups=buildGroups(indivN+1,itmCount);let gi=0;
-      for(const g of groups){
+      const lw=pcts[indivN];
+      buildGroups(indivN+1,itmCount).forEach((g,gi)=>{
         const v=lw*Math.pow(gDecay,gi+1);
         for(let r=g.start;r<=g.end;r++)pcts[r]=v;
-        rs+=v*g.count;gi++;
-      }
+        rs+=v*g.count;
+      });
+    }
+    if(rs>0)for(let i=1;i<=itmCount;i++)pcts[i]/=rs;
+  }else if(preset==='wpt'){
+    const{pct:dynPct,decay:dynDecay}=wptForEntries(CEntries);
+    gDecay=dynDecay;
+    indivN=Math.min(PRESET_TOP_N,itmCount,dynPct.length);
+    let rs=0;
+    for(let i=1;i<=indivN;i++){pcts[i]=dynPct[i-1];rs+=pcts[i];}
+    if(itmCount>indivN){
+      const lw=pcts[indivN];
+      buildGroups(indivN+1,itmCount).forEach((g,gi)=>{
+        const v=lw*Math.pow(dynDecay,gi+1);
+        for(let r=g.start;r<=g.end;r++)pcts[r]=v;
+        rs+=v*g.count;
+      });
     }
     if(rs>0)for(let i=1;i<=itmCount;i++)pcts[i]/=rs;
   }else{
     const p=PRESETS[preset];
+    gDecay=p.groupDecay;
     indivN=Math.min(PRESET_TOP_N,itmCount,p.topPct.length);
     let rs=0;
-    for(let i=1;i<=indivN;i++){pcts[i]=p.topPct[i-1];rs+=pcts[i]}
+    for(let i=1;i<=indivN;i++){pcts[i]=p.topPct[i-1];rs+=pcts[i];}
     if(itmCount>indivN){
-      const lw=pcts[indivN];const groups=buildGroups(indivN+1,itmCount);let gi=0;
-      for(const g of groups){
-        const v=lw*Math.pow(p.groupDecay,gi+1);
+      const lw=pcts[indivN];
+      buildGroups(indivN+1,itmCount).forEach((g,gi)=>{
+        const v=lw*Math.pow(gDecay,gi+1);
         for(let r=g.start;r<=g.end;r++)pcts[r]=v;
-        rs+=v*g.count;gi++;
-      }
+        rs+=v*g.count;
+      });
     }
     if(rs>0)for(let i=1;i<=itmCount;i++)pcts[i]/=rs;
   }
@@ -390,71 +616,89 @@ function buildPayout(preset,itmCount,pool,buyin,rf,minMult){
   /* TWO-PHASE FLOOR */
   const floorF=floorVND/pool;
   let nF=0,nfSum=0;
-  for(let i=1;i<=itmCount;i++){if(pcts[i]<floorF)nF++;else nfSum+=pcts[i]}
-  const floorTotal=nF*floorVND;
-  const remaining=pool-floorTotal;
+  for(let i=1;i<=itmCount;i++){if(pcts[i]<floorF)nF++;else nfSum+=pcts[i];}
+  const floorTotal=nF*floorVND,remaining=pool-floorTotal;
 
   if(remaining<=0){
     const eq=Math.floor(pool/itmCount/rf)*rf;
-    const r2=[];for(let i=1;i<=itmCount;i++)r2.push({rank:i,pct:pcts[i],amount:eq,floored:true,spct:eq/pool});
-    return{results:r2,breakage:pool-eq*itmCount,rawPcts:pcts,indivN};
+    const r2=[];
+    for(let i=1;i<=itmCount;i++)r2.push({rank:i,pct:pcts[i],amount:eq,floored:true,spct:eq/pool});
+    return{results:r2,rawPcts:pcts,indivN};
   }
 
   const scale=nfSum>0?remaining/(nfSum*pool):1;
-  const results=[];let paid=0;
+  const results=[];
   for(let i=1;i<=itmCount;i++){
     const isF=pcts[i]<floorF;
     const raw=isF?floorVND:pcts[i]*pool*scale;
     const amt=isF?Math.ceil(raw/rf)*rf:Math.floor(raw/rf)*rf;
     results.push({rank:i,pct:pcts[i],amount:amt,floored:isF,spct:amt/pool});
-    paid+=amt;
   }
-
   /* Monotonic enforcement */
   for(let i=results.length-2;i>=0;i--){
-    if(results[i].amount<results[i+1].amount){
-      results[i].amount=results[i+1].amount;
-      results[i].spct=results[i].amount/pool;
-    }
+    if(results[i].amount<results[i+1].amount){results[i].amount=results[i+1].amount;results[i].spct=results[i].amount/pool;}
   }
-  paid=0;for(const r of results)paid+=r.amount;
-
-  return{results,breakage:pool-paid,rawPcts:pcts,indivN};
+  return{results,rawPcts:pcts,indivN};
 }
 
-function tierInfo(rank,floored,indivN){
-  if(rank===1)return{label:'CHAMPION',bg:'rgba(201,168,76,.20)',color:'#d4a843',border:'rgba(201,168,76,.40)'};
-  if(rank===2)return{label:'RUNNER-UP',bg:'rgba(230,230,230,.08)',color:'#c0c0c0',border:'#3a3a3a'};
-  if(rank===3)return{label:'PODIUM',bg:'rgba(160,90,20,.22)',color:'#cc7a30',border:'rgba(160,90,20,.45)'};
-  if(rank<=9) return{label:'FINAL TABLE',bg:'rgba(30,60,120,.22)',color:'#7aaad8',border:'rgba(60,100,160,.45)'};
-  if(rank<=indivN)return{label:'ITM',bg:'rgba(50,90,50,.20)',color:'#78c078',border:'rgba(60,110,60,.45)'};
-  if(!floored)return{label:'GROUP',bg:'rgba(80,60,20,.18)',color:'#b89040',border:'rgba(120,90,30,.40)'};
-  return{label:'MIN CASH',bg:'rgba(255,255,255,.03)',color:'#787878',border:'#303030'};
+/* ══ TIER INFO ════════════════════════════════════════════ */
+function tierInfo(rank,effF,indivN){
+  if(rank===1)return{label:'CHAMPION',bg:'rgba(201,168,76,.20)',color:'#d4a843',bd:'rgba(201,168,76,.40)'};
+  if(rank===2)return{label:'RUNNER-UP',bg:'rgba(220,220,220,.07)',color:'#c0c0c0',bd:'#3a3a3a'};
+  if(rank===3)return{label:'PODIUM',bg:'rgba(160,90,20,.22)',color:'#cc7a30',bd:'rgba(160,90,20,.45)'};
+  if(rank<=9) return{label:'FINAL TABLE',bg:'rgba(30,60,120,.20)',color:'#7aaad8',bd:'rgba(60,100,160,.40)'};
+  if(rank<=indivN)return{label:'ITM',bg:'rgba(50,90,50,.18)',color:'#78c078',bd:'rgba(60,110,60,.40)'};
+  if(!effF)return{label:'GROUP',bg:'rgba(80,60,20,.16)',color:'#b89040',bd:'rgba(120,90,30,.38)'};
+  return{label:'MIN CASH',bg:'rgba(255,255,255,.03)',color:'#686868',bd:'#2c2c2c'};
 }
 
+/* ══ WARNINGS ═════════════════════════════════════════════ */
+function computeWarnings(results,indivN,pool,itmCount,buyin){
+  const ws=[];
+  if(!results.length)return ws;
+
+  const pct1=results[0]?.spct||0;
+  const ftW=results.slice(0,Math.min(9,results.length)).reduce((s,r)=>s+r.spct,0);
+  const floorN=results.filter(r=>r.floored).length;
+
+  if(pct1<0.14)ws.push({type:'error',ic:'🔴',msg:`1st place chỉ ${(pct1*100).toFixed(1)}% pool — Quá thấp (chuẩn ≥15%). Xem xét giảm ITM% hoặc chọn preset dốc hơn.`});
+  else if(pct1>0.45)ws.push({type:'warn',ic:'🟡',msg:`1st place ${(pct1*100).toFixed(1)}% pool — Quá cao (>45%). Field nhỏ hay Triton structure?`});
+
+  if(ftW<0.40&&itmCount>=9)ws.push({type:'warn',ic:'🟡',msg:`Final Table chỉ chiếm ${(ftW*100).toFixed(1)}% pool — FT khá flat. Tăng ITM% hoặc chọn preset dốc hơn để tạo thêm gap.`});
+
+  if(floorN/itmCount>0.50)ws.push({type:'warn',ic:'🟡',msg:`${floorN}/${itmCount} vị trí nhận Min Cash (${(floorN/itmCount*100).toFixed(0)}%) — Giảm ITM% hoặc Min Cash multiplier.`});
+
+  const r1r2=(results[1]?.spct||0)>0?(results[0]?.spct/(results[1]?.spct)):0;
+  if(r1r2>0&&r1r2<1.3&&itmCount>=9)ws.push({type:'info',ic:'ℹ️',msg:`1st/2nd ratio thấp (${r1r2.toFixed(2)}×) — Cảm giác FT flat. Chuẩn: APT ≈1.7, WPT ≈1.5, WSOP ≈1.5.`});
+
+  if(document.getElementById('poolMode').checked)ws.push({type:'info',ic:'ℹ️',msg:`Pool trực tiếp đang hoạt động — Phí & Rake không được tính. Breakage = Pool − Tổng giải thưởng.`});
+
+  return ws;
+}
+
+function renderWarnings(ws){
+  const panel=document.getElementById('warnPanel');
+  if(!ws.length){panel.style.display='none';panel.innerHTML='';return;}
+  panel.style.display='flex';
+  panel.innerHTML=ws.map(w=>`<div class="warn-card ${w.type}"><span class="warn-ic">${w.ic}</span><span>${w.msg}</span></div>`).join('');
+}
+
+/* ══ SELECT PRESET ════════════════════════════════════════ */
 function selectPreset(key){
-  /* When switching TO custom FROM a named preset, mirror that preset's shape in custom sliders */
   if(key==='custom'&&CP!=='custom'){
-    const CMAP={
-      wsop:{slope:0.87,topN:20,decay:0.95},
-      apt: {slope:0.82,topN:20,decay:0.90},
-      triton:{slope:0.79,topN:20,decay:0.85}
-    };
+    const CMAP={wpt:{slope:0.86,topN:20,decay:0.90},wsop:{slope:0.87,topN:20,decay:0.95},apt:{slope:0.82,topN:20,decay:0.90},triton:{slope:0.79,topN:20,decay:0.84}};
     const m=CMAP[CP];
     if(m){
-      document.getElementById('customSlope').value=m.slope;
-      document.getElementById('slopeDisp').textContent=m.slope.toFixed(2);
-      document.getElementById('customGroupStart').value=m.topN;
-      document.getElementById('grpStartDisp').textContent=m.topN;
-      document.getElementById('customGroupDecay').value=m.decay;
-      document.getElementById('gDecayDisp').textContent=m.decay.toFixed(2);
+      document.getElementById('customSlope').value=m.slope;document.getElementById('slopeNum').value=m.slope.toFixed(2);
+      document.getElementById('customGroupStart').value=m.topN;document.getElementById('grpStartNum').value=m.topN;
+      document.getElementById('customGroupDecay').value=m.decay;document.getElementById('gDecayNum').value=m.decay.toFixed(2);
     }
   }
   CP=key;
   document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
-  const ct=document.getElementById('customToggle');ct.classList.remove('active');
-  if(key==='custom'){ct.classList.add('active');document.getElementById('customPanel').classList.add('open')}
-  else{document.querySelector(`.preset-btn[data-p="${key}"]`).classList.add('active');document.getElementById('customPanel').classList.remove('open')}
+  const ct=document.getElementById('custToggle');ct.classList.remove('active');
+  if(key==='custom'){ct.classList.add('active');document.getElementById('custPanel').classList.add('open');}
+  else{const b=document.querySelector(`.preset-btn[data-p="${key}"]`);if(b)b.classList.add('active');document.getElementById('custPanel').classList.remove('open');}
   const p=PRESETS[key];
   document.getElementById('presetDesc').textContent=p.desc;
   if(p.defaultItm!=null)document.getElementById('itmPct').value=p.defaultItm;
@@ -462,335 +706,322 @@ function selectPreset(key){
   OVR.clear();expandedGroups.clear();updateResetBtn();run();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   BUILD DISPLAY ROWS — merge same-amount ranks after individual
-   ═══════════════════════════════════════════════════════════════ */
+/* ══ DISPLAY ROWS ═════════════════════════════════════════ */
 function buildDisplayRows(results,indivN){
-  const rows=[];
-  let i=0;
+  const rows=[];let i=0;
   while(i<results.length){
-    const amt=results[i].amount;
-    const rank=results[i].rank;
-    if(rank<=indivN){
-      rows.push({startRank:rank,endRank:rank,amount:amt,pct:results[i].spct,floored:results[i].floored,count:1,results:[results[i]]});
-      i++;continue;
-    }
-    let j=i+1;
-    while(j<results.length && results[j].amount===amt && results[j].rank>indivN){j++}
-    const count=j-i;
-    const groupResults=results.slice(i,j);
-    const totalPct=groupResults.reduce((s,r)=>s+r.spct,0);
-    rows.push({startRank:results[i].rank,endRank:results[j-1].rank,amount:amt,pct:totalPct/count,floored:results[i].floored,count,results:groupResults});
+    const r0=results[i],rank=r0.rank;
+    if(rank<=indivN){rows.push({startRank:rank,endRank:rank,amount:r0.amount,pct:r0.spct,floored:r0.floored,count:1,results:[r0]});i++;continue;}
+    const amt=r0.amount;let j=i+1;
+    while(j<results.length&&results[j].rank>indivN&&results[j].amount===amt)j++;
+    const gr=results.slice(i,j);
+    const tP=gr.reduce((s,r)=>s+r.spct,0);
+    rows.push({startRank:r0.rank,endRank:results[j-1].rank,amount:amt,pct:tP/gr.length,floored:r0.floored,count:gr.length,results:gr});
     i=j;
   }
   return rows;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   DELTA HELPERS — chênh lệch tiền giữa các rank
-   ═══════════════════════════════════════════════════════════════ */
-function buildAllAmts(){
-  const m={};
-  CResults.forEach(r=>{m[r.rank]=OVR.has(r.rank)?OVR.get(r.rank):r.amount;});
-  return m;
-}
-function getDeltaStr(rank,allAmts){
-  const next=allAmts[rank+1];
-  if(next===undefined)return '<span class="delta-zero">—</span>';
-  const d=(allAmts[rank]||0)-next;
-  if(d>0)return `<span class="delta-pos">+${fmtN(d)} ₫</span>`;
-  if(d===0)return '<span class="delta-zero">↔ 0</span>';
-  return `<span class="delta-neg">${fmtN(d)} ₫</span>`;
+/* ══ DELTA ════════════════════════════════════════════════ */
+function buildAllAmts(){const m={};CResults.forEach(r=>{m[r.rank]=OVR.has(r.rank)?OVR.get(r.rank):r.amount;});return m;}
+function getDeltaStr(rank,all){
+  const next=all[rank+1];
+  if(next===undefined)return'<span class="delta-zero">—</span>';
+  const d=(all[rank]||0)-next;
+  if(d>0)return`<span class="delta-pos">+${fmtN(d)} ₫</span>`;
+  if(d===0)return'<span class="delta-zero">↔ 0</span>';
+  return`<span class="delta-neg">${fmtN(d)} ₫</span>`;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RENDER TABLE — with expandable group rows + group edit
-   ═══════════════════════════════════════════════════════════════ */
+/* ══ RENDER TABLE ═════════════════════════════════════════ */
 function renderTable(results,indivN){
-  const displayRows=buildDisplayRows(results,indivN);
-  CDisplayRows=displayRows;
-  const allAmts=buildAllAmts();
+  const dRows=buildDisplayRows(results,indivN);
+  CDisplayRows=dRows;
+  const all=buildAllAmts();
   const html=[];
 
-  displayRows.forEach((row,idx)=>{
-    const{startRank,endRank,amount,pct,floored,count}=row;
-    const ti=tierInfo(startRank,floored,indivN);
-    const rCls=startRank<=3?`r${startRank}`:'';
-    const rkCls=startRank<=3?'td-rank hi':startRank<=9?'td-rank mid':'td-rank';
-    const isGroup=count>1;
-    const isExpanded=expandedGroups.has(startRank);
+  dRows.forEach(row=>{
+    const{startRank:sr,endRank:er,amount,count}=row;
+    const rCls=sr<=3?`r${sr}`:'';
+    const rkCls=sr<=3?'td-rank hi':sr<=9?'td-rank mid':'td-rank';
 
-    if(isGroup){
-      /* ── GROUP HEADER: compute effective display amount (OVR-aware) ── */
-      const grpAmtArr=row.results.map(r=>OVR.has(r.rank)?OVR.get(r.rank):r.amount);
-      const allSame=grpAmtArr.every(v=>v===grpAmtArr[0]);
-      const grpDisplayAmt=allSame?grpAmtArr[0]:row.amount;
-      const isGrpOvr=allSame&&grpAmtArr[0]!==row.amount;
-      const grpECls=isGrpOvr?' edited':'';
-      const grpOvrRow=isGrpOvr?' row-edited':'';
-      const grpPip=isGrpOvr?'<span class="grp-edit-indicator"></span>':'';
-      const grpPct=(grpDisplayAmt/CPool*100).toFixed(3);
-
-      const arrow=`<span class="grp-arrow${isExpanded?' open':''}">▶</span>`;
-      const rankLabel=`#${startRank}–${endRank}`;
-      const countBadge=`<span style="font-size:9px;color:var(--t3);margin-left:6px">(${count}×)</span>`;
-      const deltaCell=getDeltaStr(endRank,allAmts);
-
-      html.push(`<tr class="grp-header${grpOvrRow} ${rCls}" data-gstart="${startRank}">
-<td class="${rkCls}" onclick="toggleGroup(${startRank})" style="cursor:pointer">${arrow}${rankLabel}${grpPip}</td>
-<td class="td-pct" onclick="toggleGroup(${startRank})" style="cursor:pointer">${grpPct}%</td>
+    if(count>1){
+      const gA=row.results.map(r=>OVR.has(r.rank)?OVR.get(r.rank):r.amount);
+      const allSame=gA.every(v=>v===gA[0]);
+      const anyOvr=row.results.some(r=>OVR.has(r.rank));
+      const isUnif=anyOvr&&allSame&&gA[0]!==amount;
+      const isMix=anyOvr&&!allSame;
+      const gD=gA[0];
+      const gP=(gD/CPool*100).toFixed(3);
+      const gEF=sr>indivN&&gD<=CMinCash;
+      const ti=tierInfo(sr,gEF,indivN);
+      const gEC=isUnif?' edited':isMix?' mixed':'';
+      const gOC=isUnif?' row-ed':isMix?' row-mx':'';
+      const gPip=isUnif?'<span class="edit-pip"></span>':isMix?'<span class="mix-pip">≠</span>':'';
+      const arr=`<span class="grp-arrow${expandedGroups.has(sr)?' open':''}">▶</span>`;
+      html.push(`<tr class="grp-header${gOC} ${rCls}">
+<td class="${rkCls}" onclick="toggleGroup(${sr})" style="cursor:pointer">${arr}#${sr}–${er}${gPip}</td>
+<td class="td-pct" onclick="toggleGroup(${sr})" style="cursor:pointer">${isMix?'<span style="color:var(--amber);font-size:8.5px">MIXED</span>':gP+'%'}</td>
 <td><div class="td-amt-wrap" onclick="event.stopPropagation()">
-  <input class="amt-input${grpECls}" type="text" value="${fmtN(grpDisplayAmt)}"
-    data-gstart="${startRank}" data-calc="${amount}"
-    onfocus="onAF(this)" oninput="onAI(this)" onblur="onABGrp(this,${startRank})" onkeydown="onAKGrp(event,this,${startRank})">
-  <span class="amt-unit">₫</span>${countBadge}
+  <input class="amt-input${gEC}" type="text" value="${fmtN(gD)}"
+    onfocus="onAF(this)" oninput="onAI(this)" onblur="onABGrp(this,${sr})" onkeydown="onAKGrp(event,this,${sr})">
+  <span class="amt-unit">₫</span><span style="font-size:8.5px;color:var(--t4);margin-left:4px">${count}×</span>
 </div></td>
-<td onclick="toggleGroup(${startRank})" style="cursor:pointer"><span class="badge" style="background:${ti.bg};color:${ti.color};border:1px solid ${ti.border}">${ti.label}</span></td>
-<td class="td-delta" onclick="toggleGroup(${startRank})" style="cursor:pointer">${deltaCell}</td>
+<td onclick="toggleGroup(${sr})" style="cursor:pointer"><span class="badge" style="background:${ti.bg};color:${ti.color};border:1px solid ${ti.bd}">${ti.label}</span></td>
+<td class="td-delta" onclick="toggleGroup(${sr})" style="cursor:pointer">${getDeltaStr(er,all)}</td>
 </tr>`);
-
-      /* ── EXPANDED CHILD ROWS ── */
-      if(isExpanded){
+      if(expandedGroups.has(sr)){
         row.results.forEach(r=>{
-          const childOvr=OVR.has(r.rank);
-          const childAmt=childOvr?OVR.get(r.rank):r.amount;
-          const childPct=childOvr?(OVR.get(r.rank)/CPool*100).toFixed(3):(r.spct*100).toFixed(3);
-          const childFmt=fmtN(childAmt);
-          const cECls=childOvr?' edited':'';
-          const cOvrRow=childOvr?' row-edited':'';
-          const cPip=childOvr?'<span class="edit-pip"></span>':'';
-
-          html.push(`<tr class="grp-child${cOvrRow}" data-rank="${r.rank}">
-<td class="td-rank">${cPip}#${r.rank}</td>
-<td class="td-pct">${childPct}%</td>
+          const cO=OVR.has(r.rank);
+          const cA=cO?OVR.get(r.rank):r.amount;
+          const cP=(cA/CPool*100).toFixed(3);
+          const cTi=tierInfo(r.rank,cA<=CMinCash,indivN);
+          html.push(`<tr class="grp-child${cO?' row-ed':''}">
+<td class="td-rank">${cO?'<span class="edit-pip"></span>':''}#${r.rank}</td>
+<td class="td-pct">${cP}%</td>
 <td><div class="td-amt-wrap">
-  <input class="amt-input${cECls}" type="text" value="${childFmt}"
-    data-rank="${r.rank}" data-calc="${r.amount}"
+  <input class="amt-input${cO?' edited':''}" type="text" value="${fmtN(cA)}"
     onfocus="onAF(this)" oninput="onAI(this)" onblur="onAB(this,${r.rank})" onkeydown="onAK(event,this,${r.rank})">
   <span class="amt-unit">₫</span>
 </div></td>
-<td><span class="badge" style="background:rgba(80,60,20,.10);color:#9a7830;border:1px solid rgba(120,90,30,.25)">#${r.rank}</span></td>
-<td class="td-delta">${getDeltaStr(r.rank,allAmts)}</td>
+<td><span class="badge" style="background:${cTi.bg};color:${cTi.color};border:1px solid ${cTi.bd}">${cTi.label}</span></td>
+<td class="td-delta">${getDeltaStr(r.rank,all)}</td>
 </tr>`);
         });
       }
     }else{
-      /* ── INDIVIDUAL ROW ── */
-      const isSingle=startRank===endRank;
-      const isOvr=isSingle&&OVR.has(startRank);
-      const dAmt=isOvr?OVR.get(startRank):amount;
-      const dPct=isOvr?(OVR.get(startRank)/CPool*100).toFixed(3):(pct*100).toFixed(3);
-      const eCls=isOvr?' edited':'';
-      const r1Cls=startRank===1?' rank1':'';
-      const ovrRow=isOvr?' row-edited':'';
-      const pip=isOvr?'<span class="edit-pip"></span>':'';
-      const amtFormatted=fmtN(dAmt);
-      const deltaCell=getDeltaStr(startRank,allAmts);
-
-      html.push(`<tr class="${rCls}${ovrRow}" data-rank="${startRank}">
-<td class="${rkCls}">${pip}#${startRank}</td>
-<td class="td-pct">${dPct}%</td>
+      const isO=OVR.has(sr);
+      const dA=isO?OVR.get(sr):amount;
+      const dP=(dA/CPool*100).toFixed(3);
+      const eF=sr>indivN&&dA<=CMinCash;
+      const ti=tierInfo(sr,eF,indivN);
+      html.push(`<tr class="${rCls}${isO?' row-ed':''}">
+<td class="${rkCls}">${isO?'<span class="edit-pip"></span>':''}#${sr}</td>
+<td class="td-pct">${dP}%</td>
 <td><div class="td-amt-wrap">
-  <input class="amt-input${eCls}${r1Cls}" type="text" value="${amtFormatted}"
-    data-rank="${startRank}" data-calc="${amount}"
-    onfocus="onAF(this)" oninput="onAI(this)" onblur="onAB(this,${startRank})" onkeydown="onAK(event,this,${startRank})">
+  <input class="amt-input${isO?' edited':''}${sr===1?' rank1':''}" type="text" value="${fmtN(dA)}"
+    data-rank="${sr}" onfocus="onAF(this)" oninput="onAI(this)" onblur="onAB(this,${sr})" onkeydown="onAK(event,this,${sr})">
   <span class="amt-unit">₫</span>
 </div></td>
-<td><span class="badge" style="background:${ti.bg};color:${ti.color};border:1px solid ${ti.border}">${ti.label}</span></td>
-<td class="td-delta">${deltaCell}</td>
+<td><span class="badge" style="background:${ti.bg};color:${ti.color};border:1px solid ${ti.bd}">${ti.label}</span></td>
+<td class="td-delta">${getDeltaStr(sr,all)}</td>
 </tr>`);
     }
   });
+
   document.getElementById('tbody').innerHTML=html.join('');
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   TOGGLE GROUP EXPAND/COLLAPSE
-   ═══════════════════════════════════════════════════════════════ */
-function toggleGroup(startRank){
-  if(expandedGroups.has(startRank)){
-    expandedGroups.delete(startRank);
-  }else{
-    expandedGroups.add(startRank);
-  }
-  renderTable(CResults,CIndivN);
-  recalcBreakage();
-}
+/* ══ TOGGLE GROUP ═════════════════════════════════════════ */
+function toggleGroup(sr){expandedGroups.has(sr)?expandedGroups.delete(sr):expandedGroups.add(sr);renderTable(CResults,CIndivN);recalcBreakage();}
 
-/* ═══════════════════════════════════════════════════════════════
-   AMOUNT INPUT HANDLERS — live comma formatting
-   ═══════════════════════════════════════════════════════════════ */
-function onAF(inp){
-  // On focus: keep comma-formatted value, select all
-  inp.select();
-}
-
-function onAI(inp){
-  // Live comma formatting while typing
-  const pos=inp.selectionStart;
-  const before=inp.value.substring(0,pos);
-  const digitsBefore=(before.match(/\d/g)||[]).length;
-
-  const raw=inp.value.replace(/[^\d]/g,'');
-  if(!raw){inp.value='';return}
-  const formatted=parseInt(raw,10).toLocaleString('en-US');
-  inp.value=formatted;
-
-  // Restore cursor position based on digit count
-  let count=0, newPos=0;
-  for(let i=0;i<formatted.length;i++){
-    if(/\d/.test(formatted[i])) count++;
-    if(count===digitsBefore){newPos=i+1;break}
-  }
-  if(count<digitsBefore) newPos=formatted.length;
-  inp.setSelectionRange(newPos,newPos);
+/* ══ INPUT HANDLERS ═══════════════════════════════════════ */
+function onAF(i){i.select();}
+function onAI(i){
+  const pos=i.selectionStart,bef=i.value.substring(0,pos),dB=(bef.match(/\d/g)||[]).length;
+  const raw=i.value.replace(/[^\d]/g,'');
+  if(!raw){i.value='';return;}
+  const fmt=parseInt(raw,10).toLocaleString('en-US');
+  i.value=fmt;
+  let cnt=0,np=0;
+  for(let k=0;k<fmt.length;k++){if(/\d/.test(fmt[k]))cnt++;if(cnt===dB){np=k+1;break;}}
+  if(cnt<dB)np=fmt.length;
+  i.setSelectionRange(np,np);
 }
 
 function onAB(inp,rank){
   const raw=parseInt(inp.value.replace(/[^\d]/g,''))||0;
   const amt=Math.round(raw/CRF)*CRF;
-  const calcAmt=CResults[rank-1]?.amount||0;
-  if(amt>0&&amt!==calcAmt){OVR.set(rank,amt);}else{OVR.delete(rank);}
+  const calc=CResults[rank-1]?.amount||0;
+
+  /* Monotonic warnings */
+  if(rank>1&&CResults[rank-2]){
+    const prevAmt=OVR.has(rank-1)?OVR.get(rank-1):CResults[rank-2].amount;
+    if(amt>prevAmt)showToast(`⚠ Rank #${rank} (${fmtVND(amt)}) cao hơn rank #${rank-1} (${fmtVND(prevAmt)})!`,'warn-t');
+  }
+  if(rank<CResults.length&&CResults[rank]){
+    const nextAmt=OVR.has(rank+1)?OVR.get(rank+1):CResults[rank].amount;
+    if(amt>0&&amt<nextAmt)showToast(`⚠ Rank #${rank} (${fmtVND(amt)}) thấp hơn rank #${rank+1} (${fmtVND(nextAmt)})!`,'warn-t');
+  }
+
+  if(amt>0&&amt!==calc)OVR.set(rank,amt);else OVR.delete(rank);
   updateResetBtn();renderTable(CResults,CIndivN);recalcBreakage();
 }
-
-function onAK(e,inp,rank){
-  if(e.key==='Enter'){e.preventDefault();inp.blur();}
-  if(e.key==='Escape'){
-    e.preventDefault();
-    const ca=CResults[rank-1]?.amount||0;inp.value=fmtN(ca);
-    inp.blur();
-  }
+function onAK(e,i,rank){
+  if(e.key==='Enter'){e.preventDefault();i.blur();}
+  if(e.key==='Escape'){e.preventDefault();i.value=fmtN(CResults[rank-1]?.amount||0);i.blur();}
 }
-
-/* ── GROUP-LEVEL EDIT HANDLERS ── */
-function onABGrp(inp,startRank){
+function onABGrp(inp,sr){
   const raw=parseInt(inp.value.replace(/[^\d]/g,''))||0;
   const amt=Math.round(raw/CRF)*CRF;
-  const row=CDisplayRows.find(r=>r.startRank===startRank);
+  const row=CDisplayRows.find(r=>r.startRank===sr);
   if(!row)return;
-  const calcAmt=row.amount;
-  if(amt>0&&amt!==calcAmt){
-    row.results.forEach(r=>OVR.set(r.rank,amt));
-  }else{
-    row.results.forEach(r=>OVR.delete(r.rank));
-  }
+  if(amt>0&&amt!==row.amount)row.results.forEach(r=>OVR.set(r.rank,amt));
+  else row.results.forEach(r=>OVR.delete(r.rank));
   updateResetBtn();renderTable(CResults,CIndivN);recalcBreakage();
 }
-
-function onAKGrp(e,inp,startRank){
+function onAKGrp(e,inp,sr){
   if(e.key==='Enter'){e.preventDefault();inp.blur();}
-  if(e.key==='Escape'){
-    e.preventDefault();
-    const row=CDisplayRows.find(r=>r.startRank===startRank);
-    if(row){inp.value=fmtN(row.amount);}
-    inp.blur();
-  }
+  if(e.key==='Escape'){e.preventDefault();const row=CDisplayRows.find(r=>r.startRank===sr);if(row)inp.value=fmtN(row.amount);inp.blur();}
 }
 
+/* ══ BREAKAGE ═════════════════════════════════════════════ */
 function recalcBreakage(){
-  let total=0;
-  CDisplayRows.forEach(row=>{
-    // For each result in this row, check overrides
-    row.results.forEach(r=>{
-      if(OVR.has(r.rank)){
-        total+=OVR.get(r.rank);
-      }else{
-        total+=r.amount;
-      }
-    });
-  });
-
-  const b=CPool-total;const fv=fmtVND(b);
+  let total=0;CResults.forEach(r=>{total+=OVR.has(r.rank)?OVR.get(r.rank):r.amount;});
+  const b=CPool-total,fv=fmtVND(b);
   ['stBreak','topBreak'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
-    el.textContent=fv;el.className='sval';
+    el.textContent=fv;el.className='sv';
     if(b>50000)el.classList.add('brk-pos');
     else if(b<-50000)el.classList.add('brk-neg');
     else el.classList.add('brk-zero');
   });
-}
-
-function updateResetBtn(){
-  const show=OVR.size>0;
-  ['resetBtn','resetBtn2'].forEach(id=>{
-    const btn=document.getElementById(id);
-    if(btn)btn.style.display=show?'flex':'none';
-  });
-}
-
-function resetOverrides(){
-  OVR.clear();expandedGroups.clear();updateResetBtn();
-  if(CResults.length>0){
-    renderTable(CResults,CIndivN);recalcBreakage();
+  /* Update breakage button state */
+  const brkBtn=document.getElementById('brkBtn');
+  if(brkBtn){
+    const canApply=Math.abs(b)>=1000&&CResults.length>0;
+    brkBtn.classList.toggle('disabled',!canApply);
+    brkBtn.title=canApply?`Thêm ${fmtVND(b)} vào rank 1`:'Breakage < 1,000₫';
   }
 }
+function updateResetBtn(){
+  const show=OVR.size>0;
+  ['resetBtn','resetBtn2'].forEach(id=>{const btn=document.getElementById(id);if(btn)btn.style.display=show?'flex':'none';});
+}
+function resetOverrides(){OVR.clear();expandedGroups.clear();updateResetBtn();if(CResults.length>0){renderTable(CResults,CIndivN);recalcBreakage();}}
 
-/* CSV EXPORT — full data: rank, count, amount, delta vs next rank, % pool */
-function exportCSV(){
-  if(!CDisplayRows.length)return;
-  const allAmts=buildAllAmts();
-  const itmCount=CResults.length;
-
-  const lines=['\uFEFFHạng,Số người,Thưởng/người (VND),Chênh lệch rank sau (VND),% Pool,Tổng nhóm (VND)'];
-  CDisplayRows.forEach((row,idx)=>{
-    const rankLabel=row.startRank===row.endRank?`${row.startRank}`:`${row.startRank}-${row.endRank}`;
-    /* Per-person amount (OVR-aware) */
-    let totalAmt=0;
-    row.results.forEach(r=>{totalAmt+=OVR.has(r.rank)?OVR.get(r.rank):r.amount;});
-    const avgAmt=Math.round(totalAmt/row.count);
-    const groupTotal=totalAmt;
-
-    /* Delta vs next display row's per-person amount */
-    let delta='';
-    if(idx<CDisplayRows.length-1){
-      const nextRow=CDisplayRows[idx+1];
-      let nextTotal=0;
-      nextRow.results.forEach(r=>{nextTotal+=OVR.has(r.rank)?OVR.get(r.rank):r.amount;});
-      delta=avgAmt-Math.round(nextTotal/nextRow.count);
-    }
-
-    const pctVal=(avgAmt/CPool*100).toFixed(3);
-    lines.push(`"${rankLabel}",${row.count},${avgAmt},${delta},${pctVal}%,${groupTotal}`);
-  });
-
-  const csv=lines.join('\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  const entries=Math.round(gNum('entries'));
-  const buyin=Math.round(gNum('buyin')/1000);
-  a.download=`Payout_${CP}_${entries}entries_${buyin}k.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+/* ══ BREAKAGE → RANK 1 ════════════════════════════════════ */
+function applyBreakageToRank1(){
+  if(!CResults.length)return;
+  let total=0;CResults.forEach(r=>{total+=OVR.has(r.rank)?OVR.get(r.rank):r.amount;});
+  const b=Math.round(CPool-total);
+  if(Math.abs(b)<1000){showToast('Breakage quá nhỏ (<1,000₫)','info-t');return;}
+  const cur=OVR.has(1)?OVR.get(1):CResults[0].amount;
+  OVR.set(1,Math.max(0,cur+b));
+  updateResetBtn();renderTable(CResults,CIndivN);recalcBreakage();
+  showToast(`✓ Đã thêm ${fmtVND(b)} vào Rank #1`,'ok-t');
 }
 
+/* ══ CSV EXPORT ═══════════════════════════════════════════ */
+function exportCSV(){
+  if(!CDisplayRows.length)return;
+  const all=buildAllAmts(),itmCount=CResults.length;
+  const lines=['\uFEFFHạng,Số người,Thưởng/người (VND),Chênh lệch,% Pool,Tổng nhóm (VND)'];
+  CDisplayRows.forEach(row=>{
+    const gA=row.results.map(r=>OVR.has(r.rank)?OVR.get(r.rank):r.amount);
+    const allSame=gA.every(v=>v===gA[0]);
+    if(!allSame&&row.count>1){
+      row.results.forEach((r,ri)=>{
+        const amt=gA[ri];
+        const delta=r.rank<itmCount?amt-(all[r.rank+1]||0):'';
+        lines.push(`"${r.rank}",1,${amt},${delta},${(amt/CPool*100).toFixed(3)}%,${amt}`);
+      });
+    }else{
+      const lbl=row.startRank===row.endRank?`${row.startRank}`:`${row.startRank}-${row.endRank}`;
+      const avg=gA[0],tot=avg*row.count;
+      const delta=row.endRank<itmCount?avg-(all[row.endRank+1]||0):'';
+      lines.push(`"${lbl}",${row.count},${avg},${delta},${(avg/CPool*100).toFixed(3)}%,${tot}`);
+    }
+  });
+  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download=`Payout_${CP}_${CEntries}entries_${Math.round(gNum('buyin')/1000)}k.csv`;
+  a.click();URL.revokeObjectURL(url);
+}
+
+/* ══ LOCALSTORAGE ═════════════════════════════════════════ */
+function saveState(){
+  try{
+    const dot=document.getElementById('saveDot');
+    dot&&(dot.classList.add('saving'));
+    const s={
+      preset:CP,
+      entries:document.getElementById('entries').value,
+      buyin:document.getElementById('buyin').value,
+      rake:document.getElementById('rake').value,
+      staff:document.getElementById('staff').value,
+      itmPct:document.getElementById('itmPct').value,
+      minCash:document.getElementById('minCash').value,
+      rounding:document.getElementById('rounding').value,
+      poolMode:document.getElementById('poolMode').checked,
+      directPool:document.getElementById('directPool').value,
+      slope:document.getElementById('customSlope').value,
+      grpStart:document.getElementById('customGroupStart').value,
+      decay:document.getElementById('customGroupDecay').value,
+      slopeNum:document.getElementById('slopeNum').value,
+      grpStartNum:document.getElementById('grpStartNum').value,
+      gDecayNum:document.getElementById('gDecayNum').value
+    };
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(s));
+    setTimeout(()=>dot&&dot.classList.remove('saving'),800);
+  }catch(e){}
+}
+function loadState(){
+  try{
+    const s=JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if(!s)return;
+    const set=(id,v)=>{if(v!=null&&document.getElementById(id))document.getElementById(id).value=v;};
+    set('entries',s.entries);set('buyin',s.buyin);set('rake',s.rake);
+    set('staff',s.staff);set('itmPct',s.itmPct);set('minCash',s.minCash);
+    set('rounding',s.rounding);set('directPool',s.directPool);
+    set('customSlope',s.slope);set('customGroupStart',s.grpStart);set('customGroupDecay',s.decay);
+    set('slopeNum',s.slopeNum);set('grpStartNum',s.grpStartNum);set('gDecayNum',s.gDecayNum);
+    if(s.poolMode){document.getElementById('poolMode').checked=true;togglePoolMode();}
+    if(s.preset&&PRESETS[s.preset])selectPreset(s.preset);
+  }catch(e){}
+}
+
+/* ══ MAIN RUN ═════════════════════════════════════════════ */
 function run(){
   const entries=Math.max(1,Math.round(gNum('entries')));
-  const buyin=gNum('buyin'),rake=gNum('rake');
-  const staffPct=gNum('staff')/100,itmPct=gNum('itmPct')/100;
+  const buyin  =gNum('buyin');
+  const rake   =gNum('rake');
+  const staffPct=gNum('staff')/100;
+  const itmPct =gNum('itmPct')/100;
   const minMult=Math.max(1,gNum('minCash'));
-  const rf=parseInt(document.getElementById('rounding').value,10)||10000;
+  const rf     =parseInt(document.getElementById('rounding').value,10)||10000;
+  const useDirectPool=document.getElementById('poolMode').checked;
 
-  /* Staff fee on Prize Pool Contribution (after rake) */
-  const totalGross=entries*buyin;
-  const totalRake=rake*entries;
-  const prizePoolContrib=totalGross-totalRake;
-  const staffDeduct=prizePoolContrib*staffPct;
-  const pool=prizePoolContrib-staffDeduct;
-  const totalDeduct=totalRake+staffDeduct;
+  CEntries=entries;
+
+  /* POOL CALCULATION — PHƯƠNG HƯỚNG GIẢI QUYẾT POOL OVERRIDE:
+     - Auto mode:  pool = (entries×buyin − rake×entries) × (1 − staff%)
+     - Direct mode: pool = user input → không cần rake/staff
+     ITM count luôn dùng entries × itmPct (entries vẫn cần thiết).
+     Min cash vẫn dùng buyin × minMult (buyin vẫn cần thiết).
+     Breakage = pool − Σ(payouts) — hoạt động đúng trong cả 2 mode.
+     Cảnh báo tự động nếu pool trực tiếp có vẻ không hợp lý. */
+  let pool,totalDeduct;
+  if(useDirectPool){
+    pool=gNum('directPool');
+    totalDeduct=0; // không tính được deductions
+    if(pool<=0){
+      document.getElementById('tbody').innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--t3);padding:28px;font-size:11px">— Nhập prize pool vào ô trên —</td></tr>`;
+      setT('stPool','—');setT('topPool','—');return;
+    }
+  }else{
+    pool=(entries*buyin - rake*entries)*(1-staffPct);
+    totalDeduct=(rake*entries)+(entries*buyin - rake*entries)*staffPct;
+    if(pool<=0){
+      document.getElementById('tbody').innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--t3);padding:28px;font-size:11px">— Pool không hợp lệ (rake ≥ buy-in?) —</td></tr>`;
+      setT('stPool',fmtVND(0));setT('topPool',fmtVND(0));return;
+    }
+  }
+
   const itmCount=Math.max(1,Math.round(entries*itmPct));
 
-  if(CPool!==pool||CRF!==rf){OVR.clear();expandedGroups.clear();updateResetBtn()}
+  if(CPool!==pool||CRF!==rf||CResults.length!==itmCount){OVR.clear();expandedGroups.clear();updateResetBtn();}
   CPool=pool;CRF=rf;
+  CMinCash=Math.ceil(buyin*minMult/rf)*rf;
 
-  setT('stPool',fmtVND(pool));setT('stDeduct',fmtVND(totalDeduct));
-  setT('stItm',itmCount+' người');setT('stMin',fmtVND(buyin*minMult));
-  setT('topPool',fmtVND(pool));setT('topDeduct',fmtVND(totalDeduct));
-  if(pool<=0)return;
+  setT('stPool',fmtVND(pool));setT('stDeduct',useDirectPool?'—':fmtVND(totalDeduct));
+  setT('stItm',itmCount+' người');setT('stMin',fmtVND(CMinCash));
+  setT('topPool',fmtVND(pool));setT('topDeduct',useDirectPool?'—':fmtVND(totalDeduct));
 
-  const{results,breakage,rawPcts,indivN}=buildPayout(CP,itmCount,pool,buyin,rf,minMult);
+  const{results,rawPcts,indivN}=buildPayout(CP,itmCount,pool,buyin,rf,minMult);
+
+  if(CIndivN!==indivN||CResults.length!==results.length)expandedGroups.clear();
   CResults=results;CIndivN=indivN;
 
   setT('ps1',results[0]?fmtVND(results[0].amount):'—');
@@ -801,22 +1032,35 @@ function run(){
   for(let i=1;i<=Math.min(9,itmCount);i++)ftW+=rawPcts[i];
   for(let i=10;i<=Math.min(indivN,itmCount);i++)midW+=rawPcts[i];
   for(let i=indivN+1;i<=itmCount;i++)grpW+=rawPcts[i];
-
   setT('stFT',(ftW*100).toFixed(1)+'%');setT('topFT',(ftW*100).toFixed(1)+'%');
-  document.getElementById('distBar').innerHTML=
-    `<div class="dist-seg" style="width:${(ftW*100).toFixed(1)}%;background:var(--gold);opacity:.75"></div>`+
-    `<div class="dist-seg" style="width:${(midW*100).toFixed(1)}%;background:#4a7aaa;opacity:.75"></div>`+
-    `<div class="dist-seg" style="width:${(grpW*100).toFixed(1)}%;background:#3a7a3a;opacity:.75"></div>`;
 
-  const fc=results.filter(r=>r.floored).length;
-  document.getElementById('floorWarn').classList.toggle('show',fc/itmCount>0.5);
+  document.getElementById('distBar').innerHTML=
+    `<div class="dist-seg" style="width:${(ftW*100).toFixed(1)}%;background:var(--gold);opacity:.8"></div>`+
+    `<div class="dist-seg" style="width:${(midW*100).toFixed(1)}%;background:#4a7aaa;opacity:.8"></div>`+
+    `<div class="dist-seg" style="width:${(grpW*100).toFixed(1)}%;background:#3a7a3a;opacity:.8"></div>`;
+
+  /* Compute and render warnings */
+  const ws=computeWarnings(results,indivN,pool,itmCount,buyin);
+  renderWarnings(ws);
 
   renderTable(results,indivN);
   recalcBreakage();
+
+  /* Update print meta */
+  const now=new Date();
+  setT('printTitle',`Quads Hanoi — Payout ${CP.toUpperCase()} · ${entries} người · ${fmtVND(pool)}`);
+  setT('printMeta',`In ngày ${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN')} · ITM: ${itmCount} người (${(itmPct*100).toFixed(1)}%) · Min Cash: ${fmtVND(CMinCash)} · Làm tròn: ${rf.toLocaleString()}₫`);
+
+  saveState();
 }
 
+/* ══ INIT ═════════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('presetDesc').textContent=PRESETS[CP].desc;run();
+  loadState();
+  if(!CResults.length){
+    document.getElementById('presetDesc').textContent=PRESETS[CP].desc;
+    run();
+  }
 });
 </script>
 </body>
