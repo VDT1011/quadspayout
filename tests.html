@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Payout Engine — Tests</title>
+<style>
+  body { font: 13px/1.5 ui-monospace, monospace; background:#0a0a0a; color:#ddd; padding:20px; max-width:1100px; margin:auto }
+  h1 { color:#c9a84c; font-size:18px; margin:0 0 4px }
+  h2 { color:#c9a84c; font-size:14px; margin:18px 0 6px; border-bottom:1px solid #333; padding-bottom:3px }
+  .sum { padding:10px; border-radius:8px; margin-bottom:14px; font-weight:700 }
+  .sum.ok   { background:rgba(76,170,90,.14); color:#78d078; border:1px solid rgba(76,170,90,.4) }
+  .sum.fail { background:rgba(201,76,76,.14); color:#ec7a7a; border:1px solid rgba(201,76,76,.4) }
+  .t  { padding:4px 8px; margin:2px 0; border-radius:4px; font-size:12px }
+  .t.pass { background:rgba(76,170,90,.08); color:#8fd890 }
+  .t.fail { background:rgba(201,76,76,.12); color:#f09090; white-space:pre-wrap }
+  code { color:#f0c95e }
+</style>
+</head>
+<body>
+<h1>Payout Engine — Test Suite</h1>
+<div>Chạy tự động khi load. Kiểm tra invariants của <code>buildPayout</code> sau fix A+B.</div>
+<div id="summary" class="sum"></div>
+<div id="out"></div>
+
+<!-- Stubs: buildPayout chỉ chạm DOM khi preset='custom' không kèm opts.
+     Tests luôn truyền opts nên DOM không bị đụng, nhưng stub phòng hờ. -->
+<script>
+  window.document.getElementById = (id) => ({ value: '', checked: false, classList: { toggle: ()=>{}, add: ()=>{}, remove: ()=>{}, contains: ()=>false }, style: {}, querySelector: ()=>({classList:{toggle:()=>{}}}) });
+</script>
+<script src="app.js"></script>
+<script>
+(() => {
+  const out = document.getElementById('out');
+  const results = [];
+  let group = null;
+
+  function describe(name, fn) {
+    group = { name, tests: [] };
+    results.push(group);
+    try { fn(); } catch (e) { group.tests.push({ name: '(setup)', ok: false, msg: e.message + '\n' + e.stack }); }
+  }
+  function it(name, fn) {
+    try { fn(); group.tests.push({ name, ok: true }); }
+    catch (e) { group.tests.push({ name, ok: false, msg: e.message }); }
+  }
+  function assert(cond, msg) { if (!cond) throw new Error(msg || 'assertion failed'); }
+  function eq(a, b, msg) { if (a !== b) throw new Error(`${msg||''} expected ${b}, got ${a}`); }
+
+  /* ───── Helpers ───── */
+  const RF = 10000;
+  const sum = (r) => r.reduce((s,x) => s + x.amount, 0);
+
+  function checkInvariants(res, pool, rf, floorVND, label) {
+    const total = sum(res);
+    const brk   = pool - total;
+    // Breakage: non-negative and less than rf
+    assert(brk >= 0,  `${label}: breakage âm = ${brk} (total=${total}, pool=${pool})`);
+    assert(brk < rf,  `${label}: breakage ${brk} ≥ rf ${rf}`);
+    // All multiples of rf
+    for (const r of res) assert(r.amount % rf === 0, `${label}: rank ${r.rank} amount ${r.amount} không chia hết ${rf}`);
+    // Monotonic
+    for (let i = 0; i < res.length - 1; i++)
+      assert(res[i].amount >= res[i+1].amount, `${label}: monotonic fail rank ${i+1}(${res[i].amount}) < rank ${i+2}(${res[i+1].amount})`);
+    // Floored ranks ≥ ceiledFloor
+    const ceiledFloor = Math.ceil(floorVND / rf) * rf;
+    for (const r of res)
+      if (r.floored) assert(r.amount >= ceiledFloor, `${label}: floored rank ${r.rank} amount ${r.amount} < ${ceiledFloor}`);
+    // Non-negative
+    for (const r of res) assert(r.amount >= 0, `${label}: rank ${r.rank} âm`);
+  }
+
+  /* ───── Tests ───── */
+
+  describe('buildGroups', () => {
+    it('empty range returns []', () => { eq(buildGroups(5, 4).length, 0); });
+    it('single rank → 1 group of size 1', () => {
+      const g = buildGroups(5, 5);
+      eq(g.length, 1); eq(g[0].start, 5); eq(g[0].end, 5); eq(g[0].count, 1);
+    });
+    it('covers range without gaps', () => {
+      const g = buildGroups(10, 50);
+      eq(g[0].start, 10);
+      eq(g[g.length-1].end, 50);
+      for (let i = 1; i < g.length; i++) eq(g[i].start, g[i-1].end + 1, 'gap');
+    });
+    it('group sizes grow monotonically', () => {
+      const g = buildGroups(10, 100);
+      for (let i = 1; i < g.length; i++) assert(g[i].count >= g[i-1].count, `decreasing at ${i}`);
+    });
+  });
+
+  describe('wptForEntries', () => {
+    it('returns array of length PRESET_TOP_N', () => {
+      const { pct } = wptForEntries(150);
+      eq(pct.length, 20);
+    });
+    it('pct sum ≈ 1 after normalization-ready (raw % ~100)', () => {
+      const { pct } = wptForEntries(200);
+      const s = pct.reduce((a,b) => a+b, 0);
+      assert(s > 0.5 && s < 1.5, `sum=${s}`);
+    });
+    it('decay in (0,1]', () => {
+      const { decay } = wptForEntries(300);
+      assert(decay > 0 && decay <= 1, `decay=${decay}`);
+    });
+  });
+
+  describe('tierInfo', () => {
+    it('rank 1 → CHAMPION', () => { eq(tierInfo(1, false, 20).label, 'CHAMPION'); });
+    it('rank 2 → RUNNER-UP', () => { eq(tierInfo(2, false, 20).label, 'RUNNER-UP'); });
+    it('rank 3 → PODIUM', () => { eq(tierInfo(3, false, 20).label, 'PODIUM'); });
+    it('rank 8 → FINAL TABLE', () => { eq(tierInfo(8, false, 20).label, 'FINAL TABLE'); });
+    it('rank 15 non-floored in indivN → ITM', () => { eq(tierInfo(15, false, 20).label, 'ITM'); });
+    it('rank 25 non-floored → GROUP', () => { eq(tierInfo(25, false, 20).label, 'GROUP'); });
+    it('floored → MIN CASH', () => { eq(tierInfo(30, true, 20).label, 'MIN CASH'); });
+  });
+
+  describe('buildPayout — static presets', () => {
+    for (const preset of ['wsop','apt','triton']) {
+      it(`${preset}: pool=500M, 150 entries, itm=22`, () => {
+        CEntries = 150;
+        const { results } = buildPayout(preset, 22, 500_000_000, 1_000_000, RF, 2.0);
+        eq(results.length, 22);
+        checkInvariants(results, 500_000_000, RF, 2_000_000, preset);
+      });
+      it(`${preset}: pool=1.2B, 600 entries, itm=90`, () => {
+        CEntries = 600;
+        const { results } = buildPayout(preset, 90, 1_200_000_000, 1_000_000, RF, 2.0);
+        eq(results.length, 90);
+        checkInvariants(results, 1_200_000_000, RF, 2_000_000, preset);
+      });
+    }
+  });
+
+  describe('buildPayout — WPT dynamic', () => {
+    for (const n of [80, 150, 250, 400, 500]) {
+      it(`wpt ${n} entries`, () => {
+        const itm = Math.max(9, Math.floor(n * 0.125));
+        const pool = n * 900_000;  // giả lập pool
+        const { results } = buildPayout('wpt', itm, pool, 1_000_000, RF, 2.0, { entries: n });
+        eq(results.length, itm);
+        checkInvariants(results, pool, RF, 2_000_000, `wpt-${n}`);
+      });
+    }
+  });
+
+  describe('buildPayout — custom preset', () => {
+    it('custom với opts chuẩn', () => {
+      const { results } = buildPayout('custom', 30, 300_000_000, 1_000_000, RF, 2.0,
+        { slope: 0.87, grpStart: 15, decay: 0.82 });
+      eq(results.length, 30);
+      checkInvariants(results, 300_000_000, RF, 2_000_000, 'custom');
+    });
+    it('slope dốc (0.70) → top-heavy', () => {
+      const { results } = buildPayout('custom', 20, 200_000_000, 500_000, RF, 2.0,
+        { slope: 0.70, grpStart: 15, decay: 0.80 });
+      checkInvariants(results, 200_000_000, RF, 1_000_000, 'custom-steep');
+      assert(results[0].amount > results[1].amount * 1.3, 'rank1 không đủ dốc so rank2');
+    });
+  });
+
+  describe('buildPayout — edge cases', () => {
+    it('itmCount=1 → toàn pool về rank 1 (trừ rounding)', () => {
+      const { results } = buildPayout('wsop', 1, 50_000_000, 1_000_000, RF, 2.0);
+      eq(results.length, 1);
+      checkInvariants(results, 50_000_000, RF, 2_000_000, 'single');
+      assert(results[0].amount >= 50_000_000 - RF, `rank1 chỉ ${results[0].amount}`);
+    });
+    it('pool quá nhỏ → fallback equal share', () => {
+      // pool nhỏ hơn floor*itm → scale<=0 branch
+      const { results } = buildPayout('wsop', 10, 5_000_000, 1_000_000, RF, 2.0);
+      eq(results.length, 10);
+      for (const r of results) assert(r.amount >= 0, 'âm');
+      // Tổng không vượt pool (fallback floor share)
+      assert(sum(results) <= 5_000_000, `fallback vượt pool ${sum(results)}`);
+    });
+    it('itmCount=0 → rỗng', () => {
+      const { results } = buildPayout('wsop', 0, 10_000_000, 1_000_000, RF, 2.0);
+      eq(results.length, 0);
+    });
+    it('pool=0 → rỗng', () => {
+      const { results } = buildPayout('wsop', 10, 0, 1_000_000, RF, 2.0);
+      eq(results.length, 0);
+    });
+    it('rf=50000 (floor không chia hết → ceiledFloor kiểm tra)', () => {
+      // floorVND=buyin*mult=1.5M; rf=50k → ceiledFloor=1.5M đúng; thử buyin 333k → floor=499.5k
+      const { results } = buildPayout('triton', 25, 400_000_000, 333_000, 50_000, 1.5);
+      checkInvariants(results, 400_000_000, 50_000, 499_500, 'rf50k-awkward');
+    });
+    it('rf=100k với nhiều floored ranks (stress Fix B)', () => {
+      // ITM lớn + minMult cao → nhiều rank chạm floor
+      const { results } = buildPayout('wsop', 60, 600_000_000, 2_000_000, 100_000, 3.0);
+      checkInvariants(results, 600_000_000, 100_000, 6_000_000, 'many-floored');
+    });
+  });
+
+  describe('Fix A+B fuzz — 200 random configs', () => {
+    it('200 configs ngẫu nhiên đều thoả invariants', () => {
+      const presets = ['wsop','apt','triton','wpt','custom'];
+      const rng = (seed => () => (seed = (seed*9301+49297) % 233280) / 233280)(42);
+      for (let k = 0; k < 200; k++) {
+        const p       = presets[Math.floor(rng() * presets.length)];
+        const entries = 50 + Math.floor(rng() * 600);
+        const itm     = Math.max(1, Math.floor(entries * (0.05 + rng() * 0.25)));
+        const buyin   = [500_000, 1_000_000, 2_000_000, 5_000_000][Math.floor(rng()*4)];
+        const pool    = Math.floor(entries * buyin * (0.75 + rng() * 0.3));
+        const rf      = [10_000, 50_000, 100_000][Math.floor(rng()*3)];
+        const mult    = [1.5, 2.0, 2.5, 3.0][Math.floor(rng()*4)];
+        CEntries = entries;
+        const opts = p === 'custom'
+          ? { slope: 0.75 + rng()*0.2, grpStart: 10 + Math.floor(rng()*10), decay: 0.75 + rng()*0.15 }
+          : (p === 'wpt' ? { entries } : {});
+        const { results } = buildPayout(p, itm, pool, buyin, rf, mult, opts);
+        if (results.length === 0) continue;  // pool=0 edge
+        try { checkInvariants(results, pool, rf, buyin*mult, `fuzz#${k}[${p}]`); }
+        catch (e) {
+          throw new Error(`${e.message}\n  cfg: preset=${p} itm=${itm} pool=${pool} buyin=${buyin} rf=${rf} mult=${mult}`);
+        }
+      }
+    });
+  });
+
+  /* ───── User preset schema / validation / migration ───── */
+  describe('user-preset schema', () => {
+    const baseCfg = { slope: 0.87, grpStart: 15, decay: 0.82, itmPct: 15, minCash: 2 };
+
+    it('validatePresetConfig: config hợp lệ → ok', () => {
+      const r = validatePresetConfig(baseCfg);
+      assert(r.ok, 'expected ok, got errors: ' + r.errors.join(', '));
+    });
+    it('validatePresetConfig: decay > 1 → error', () => {
+      const r = validatePresetConfig({ ...baseCfg, decay: 1.2 });
+      assert(!r.ok && r.errors.some(e => /decay/i.test(e)), 'expected decay error');
+    });
+    it('validatePresetConfig: decay = 0 → error', () => {
+      const r = validatePresetConfig({ ...baseCfg, decay: 0 });
+      assert(!r.ok, 'expected error');
+    });
+    it('validatePresetConfig: grpStart phải integer', () => {
+      const r = validatePresetConfig({ ...baseCfg, grpStart: 15.5 });
+      assert(!r.ok, 'expected error');
+    });
+    it('validatePresetConfig: ITM% ngoài range → error', () => {
+      const r = validatePresetConfig({ ...baseCfg, itmPct: 60 });
+      assert(!r.ok, 'expected error');
+    });
+    it('validatePresetConfig: slope quá dốc → warning về 1st%', () => {
+      const r = validatePresetConfig({ ...baseCfg, slope: 0.55, decay: 0.45, grpStart: 3 });
+      assert(r.ok, 'ranges still valid');
+      assert(r.warnings.length > 0, 'expected warning on extreme config');
+    });
+
+    it('validatePresetMeta: tên rỗng → error', () => {
+      const r = validatePresetMeta({ name: '  ' }, []);
+      assert(!r.ok, 'expected error');
+    });
+    it('validatePresetMeta: tên quá dài → error', () => {
+      const r = validatePresetMeta({ name: 'x'.repeat(50) }, []);
+      assert(!r.ok, 'expected error');
+    });
+    it('validatePresetMeta: tên trùng existing → error', () => {
+      const r = validatePresetMeta({ name: 'foo' }, ['foo', 'bar']);
+      assert(!r.ok, 'expected duplicate error');
+    });
+    it('validatePresetMeta: recommendedField không integer → error', () => {
+      const r = validatePresetMeta({ name: 'ok', recommendedField: 12.5 }, []);
+      assert(!r.ok, 'expected error');
+    });
+    it('validatePresetMeta: recommendedField rỗng OK', () => {
+      const r = validatePresetMeta({ name: 'ok', recommendedField: '' }, []);
+      assert(r.ok, 'empty field should be OK');
+    });
+
+    it('migratePresetShape: v1 → v2 giữ config + thêm metadata', () => {
+      const v1 = { slope: 0.9, grpStart: 12, decay: 0.8, itmPct: 14, minCash: 2, createdAt: 1000 };
+      const v2 = migratePresetShape('old', v1);
+      eq(v2.schemaVersion, 2);
+      eq(v2.slope, 0.9);
+      eq(v2.name, 'old');
+      eq(v2.createdAt, 1000);
+      eq(v2.updatedAt, 1000);
+      eq(v2.description, '');
+      eq(v2.recommendedField, null);
+    });
+    it('migratePresetShape: v2 đã chuẩn → no-op', () => {
+      const v2 = {
+        slope: 0.87, grpStart: 15, decay: 0.82, itmPct: 15, minCash: 2,
+        name: 'x', description: 'd', recommendedField: 200,
+        createdAt: 1, updatedAt: 2, createdBy: 'me', schemaVersion: 2
+      };
+      const out = migratePresetShape('x', v2);
+      eq(out, v2, 'should return same reference');
+    });
+
+    it('buildPresetObject: gắn name + timestamps + schemaVersion', () => {
+      const o = buildPresetObject('foo', baseCfg, { description: ' d ', recommendedField: '250', createdBy: '' });
+      eq(o.name, 'foo');
+      eq(o.description, 'd');
+      eq(o.recommendedField, 250);
+      eq(o.schemaVersion, 2);
+      assert(o.createdAt > 0 && o.updatedAt > 0, 'timestamps set');
+    });
+
+    it('buildExportBundle: format + version đúng', () => {
+      USER_PRESETS['tmp'] = buildPresetObject('tmp', baseCfg, {});
+      const b = buildExportBundle(['tmp']);
+      eq(b.format, 'quads-payout-preset');
+      eq(b.schemaVersion, 2);
+      eq(b.presets.length, 1);
+      eq(b.presets[0].name, 'tmp');
+      delete USER_PRESETS['tmp'];
+    });
+  });
+
+  /* ───── Render ───── */
+  let total = 0, pass = 0;
+  for (const g of results) {
+    const h = document.createElement('h2'); h.textContent = g.name; out.appendChild(h);
+    for (const t of g.tests) {
+      total++; if (t.ok) pass++;
+      const d = document.createElement('div');
+      d.className = 't ' + (t.ok ? 'pass' : 'fail');
+      d.textContent = (t.ok ? '✓ ' : '✗ ') + t.name + (t.msg ? '\n    ' + t.msg : '');
+      out.appendChild(d);
+    }
+  }
+  const s = document.getElementById('summary');
+  s.className = 'sum ' + (pass === total ? 'ok' : 'fail');
+  s.textContent = `${pass} / ${total} passed` + (pass === total ? ' — tất cả OK' : ` — ${total-pass} FAIL`);
+})();
+</script>
+</body>
+</html>
