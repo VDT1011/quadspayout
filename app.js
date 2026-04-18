@@ -512,14 +512,8 @@ function buildPayout(preset, itmCount, pool, buyin, rf, minMult, opts = {}) {
     }
   }
 
-  // Dương → dồn vào Rank 1 (đã round theo rf)
-  if (diff > 0 && results[0]) {
-    const add = Math.floor(diff / rf) * rf;
-    if (add > 0) {
-      results[0].amount += add;
-      results[0].spct    = results[0].amount / pool;
-    }
-  }
+  // Dương → giữ nguyên làm breakage (không auto-cộng vào Rank 1).
+  // User có thể bấm nút "Add breakage to Rank 1" nếu muốn gộp thủ công.
 
   return { results, rawPcts: pcts, indivN };
 }
@@ -1067,7 +1061,9 @@ function recalcBreakage() {
   if (brkBtn) {
     const canApply = Math.abs(b) >= 1000 && CResults.length > 0;
     brkBtn.classList.toggle('disabled', !canApply);
-    brkBtn.title = canApply ? `Thêm ${fmtVND(b)} vào rank 1` : 'Breakage < 1,000₫';
+    brkBtn.title = canApply
+      ? (b >= 0 ? `Cộng ${fmtVND(b)} vào rank #1` : `Trừ ${fmtVND(Math.abs(b))} khỏi rank #1`)
+      : 'Breakage < 1,000₫';
   }
 }
 

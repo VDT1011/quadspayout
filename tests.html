@@ -53,9 +53,8 @@
   function checkInvariants(res, pool, rf, floorVND, label) {
     const total = sum(res);
     const brk   = pool - total;
-    // Breakage: non-negative and less than rf
+    // Breakage: non-negative (positive leftover is OK — không auto-cộng vào rank 1)
     assert(brk >= 0,  `${label}: breakage âm = ${brk} (total=${total}, pool=${pool})`);
-    assert(brk < rf,  `${label}: breakage ${brk} ≥ rf ${rf}`);
     // All multiples of rf
     for (const r of res) assert(r.amount % rf === 0, `${label}: rank ${r.rank} amount ${r.amount} không chia hết ${rf}`);
     // Monotonic
@@ -217,6 +216,73 @@
           throw new Error(`${e.message}\n  cfg: preset=${p} itm=${itm} pool=${pool} buyin=${buyin} rf=${rf} mult=${mult}`);
         }
       }
+    });
+  });
+
+  describe('STRESS — 2000 random configs (extreme ranges)', () => {
+    it('2000 configs: không throw, invariants hold, breakage ≥ 0', () => {
+      const presets = ['wsop','apt','triton','wpt','custom'];
+      const rng = (seed => () => (seed = (seed*9301+49297) % 233280) / 233280)(1337);
+      let maxBrkRatio = 0, worst = null;
+      for (let k = 0; k < 2000; k++) {
+        const p       = presets[Math.floor(rng() * presets.length)];
+        const entries = 20 + Math.floor(rng() * 2000);      // 20..2020
+        const itm     = Math.max(1, Math.floor(entries * (0.03 + rng() * 0.35)));
+        const buyin   = [100_000, 500_000, 1_000_000, 2_000_000, 5_000_000, 10_000_000][Math.floor(rng()*6)];
+        const pool    = Math.floor(entries * buyin * (0.5 + rng() * 0.6));
+        const rf      = [1_000, 10_000, 50_000, 100_000, 500_000][Math.floor(rng()*5)];
+        const mult    = [1.0, 1.5, 2.0, 2.5, 3.0, 4.0][Math.floor(rng()*6)];
+        CEntries = entries;
+        const opts = p === 'custom'
+          ? { slope: 0.65 + rng()*0.30, grpStart: 5 + Math.floor(rng()*20), decay: 0.70 + rng()*0.25 }
+          : (p === 'wpt' ? { entries } : {});
+        let res;
+        try {
+          const out = buildPayout(p, itm, pool, buyin, rf, mult, opts);
+          res = out.results;
+        } catch (e) {
+          throw new Error(`#${k} THREW: ${e.message}\n  cfg: ${JSON.stringify({p,itm,pool,buyin,rf,mult})}`);
+        }
+        if (!res || res.length === 0) continue;
+        try { checkInvariants(res, pool, rf, buyin*mult, `stress#${k}[${p}]`); }
+        catch (e) {
+          throw new Error(`${e.message}\n  cfg: ${JSON.stringify({p,itm,pool,buyin,rf,mult})}`);
+        }
+        const brk = pool - res.reduce((s,r)=>s+r.amount,0);
+        const ratio = pool > 0 ? brk/pool : 0;
+        if (ratio > maxBrkRatio) { maxBrkRatio = ratio; worst = {k,p,itm,pool,buyin,rf,mult,brk}; }
+      }
+      // Breakage dương OK, nhưng không được quá bất thường (>5% pool là signal rounding kém)
+      assert(maxBrkRatio < 0.05,
+        `Breakage quá lớn ${(maxBrkRatio*100).toFixed(3)}% ở ${JSON.stringify(worst)}`);
+    });
+
+    it('extreme: pool=1, itm=10 (under-funded)', () => {
+      const { results } = buildPayout('wsop', 10, 1, 1_000_000, 10_000, 2.0);
+      for (const r of results) assert(r.amount >= 0, 'âm');
+      assert(sum(results) <= 1, `vượt pool: ${sum(results)}`);
+    });
+    it('extreme: itm=1000 (huge field)', () => {
+      CEntries = 8000;
+      const { results } = buildPayout('wsop', 1000, 50_000_000_000, 1_000_000, 10_000, 2.0);
+      eq(results.length, 1000);
+      checkInvariants(results, 50_000_000_000, 10_000, 2_000_000, 'huge-itm');
+    });
+    it('extreme: rf=1 (no rounding)', () => {
+      CEntries = 200;
+      const { results } = buildPayout('wsop', 30, 300_000_000, 1_000_000, 1, 2.0);
+      checkInvariants(results, 300_000_000, 1, 2_000_000, 'rf=1');
+    });
+    it('extreme: buyin=0 (free roll)', () => {
+      CEntries = 100;
+      const { results } = buildPayout('wsop', 15, 10_000_000, 0, 10_000, 2.0);
+      // floor = 0, nên không ai "floored"; pool phân phối theo %
+      checkInvariants(results, 10_000_000, 10_000, 0, 'freeroll');
+    });
+    it('extreme: minMult rất cao (5x)', () => {
+      CEntries = 150;
+      const { results } = buildPayout('wsop', 25, 200_000_000, 1_000_000, 10_000, 5.0);
+      checkInvariants(results, 200_000_000, 10_000, 5_000_000, 'high-mult');
     });
   });
 
