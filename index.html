@@ -93,13 +93,13 @@
               <div class="cl">Độ dốc rank</div>
               <div class="cd">w(i) = slope^(i−1)</div>
             </div>
-            <input type="number" id="slopeNum" class="cslider-num" value="0.87" min="0.70" max="0.97" step="0.01"
-              oninput="syncNum('slopeNum','customSlope',0.70,0.97,2)"
-              onblur="clampNum('slopeNum','customSlope',0.70,0.97,2)">
+            <input type="number" id="slopeNum" class="cslider-num" value="0.87" min="0.55" max="0.97" step="0.01"
+              oninput="syncNum('slopeNum','customSlope',0.55,0.97,2)"
+              onblur="clampNum('slopeNum','customSlope',0.55,0.97,2)">
           </div>
-          <input type="range" id="customSlope" min="0.70" max="0.97" step="0.01" value="0.87"
+          <input type="range" id="customSlope" min="0.55" max="0.97" step="0.01" value="0.87"
             oninput="syncSlider('customSlope','slopeNum',2)">
-          <div class="rng-row"><span>0.70 · Dốc mạnh</span><span>0.97 · Phân đều</span></div>
+          <div class="rng-row"><span>0.55 · Siêu dốc</span><span>0.97 · Phân đều</span></div>
         </div>
         <!-- Group start slider -->
         <div class="cslider-block">
@@ -142,6 +142,7 @@
               </button>
               <button class="up-icon" onclick="triggerImportPresets()" title="Nhập preset từ file .json">↑</button>
               <button class="up-icon" onclick="exportAllUserPresets()" title="Xuất tất cả preset ra .json">↓</button>
+              <button class="up-icon" onclick="openBackupRestore()" title="Khôi phục từ auto-backup">↺</button>
               <input type="file" id="presetImportInput" accept="application/json,.json" style="display:none" onchange="handleImportFile(event)">
             </div>
           </div>
@@ -182,12 +183,12 @@
     <div class="group-lbl">Field</div>
     <div class="grid grid-cols-2 gap-3 mb-3">
       <div>
-        <label>Số người tham dự</label>
-        <input type="text" id="entries" value="200" oninput="fmtRun(this)">
+        <label title="Tổng số người chơi đăng ký (bao gồm re-entry). Quyết định pool và số rank ITM.">Số người tham dự <span style="opacity:.4">ⓘ</span></label>
+        <input type="text" id="entries" value="200" oninput="fmtRun(this)" title="Tổng entries (người + re-entry). Vd: 200 người chơi, 30 re-entry → nhập 230.">
       </div>
       <div>
-        <label>Buy-in (VNĐ)</label>
-        <input type="text" id="buyin" value="5,500,000" oninput="fmtRun(this)">
+        <label title="Giá vé mỗi người chơi, đã bao gồm rake. Pool = entries × (buy-in − rake) × (1 − vận hành%).">Buy-in (VNĐ) <span style="opacity:.4">ⓘ</span></label>
+        <input type="text" id="buyin" value="5,500,000" oninput="fmtRun(this)" title="Tổng tiền nộp mỗi entry (buy-in + rake). Không gồm tip/bounty.">
       </div>
     </div>
 
@@ -195,12 +196,12 @@
     <div class="group-lbl">Tài chính</div>
     <div class="grid grid-cols-2 gap-3 mb-3">
       <div id="rakeWrap">
-        <label>Rake / người (VNĐ)</label>
-        <input type="text" id="rake" value="500,000" oninput="fmtRun(this)">
+        <label title="Số tiền CLB thu/người, không vào prize pool. Cảnh báo nếu > 15% buy-in.">Rake / người (VNĐ) <span style="opacity:.4">ⓘ</span></label>
+        <input type="text" id="rake" value="500,000" oninput="fmtRun(this)" title="Rake cố định mỗi entry. Ở Pool trực tiếp, trường này bị tắt.">
       </div>
       <div id="staffWrap">
-        <label>Vận hành (%)</label>
-        <input type="number" id="staff" value="3" step="0.5" min="0" max="20" oninput="run()">
+        <label title="Phần trăm trích từ (pool sau rake) cho vận hành/dealer/staff.">Vận hành (%) <span style="opacity:.4">ⓘ</span></label>
+        <input type="number" id="staff" value="3" step="0.5" min="0" max="20" oninput="run()" title="0–20%. Trừ từ pool sau khi đã trừ rake.">
       </div>
     </div>
 
@@ -208,15 +209,15 @@
     <div class="group-lbl">Cấu trúc trả thưởng</div>
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label>ITM (%)</label>
-        <input type="number" id="itmPct" value="15" min="5" max="30" step="0.5" oninput="run()">
+        <label title="% field nhận tiền thưởng. WSOP ~15%, APT ~13%, Triton ~10%. Cảnh báo nếu > 30%.">ITM (%) <span style="opacity:.4">ⓘ</span></label>
+        <input type="number" id="itmPct" value="15" min="5" max="30" step="0.5" oninput="run()" title="Số rank ITM = round(entries × ITM%). Ví dụ 200 × 15% = 30 rank.">
       </div>
       <div>
-        <label>Min Cash (× buy-in)</label>
-        <input type="number" id="minCash" value="2" min="1" max="5" step="0.1" oninput="run()">
+        <label title="Sàn giải thưởng tối thiểu = multiplier × buy-in. Các rank thấp bị bump lên giá trị này.">Min Cash (× buy-in) <span style="opacity:.4">ⓘ</span></label>
+        <input type="number" id="minCash" value="2" min="1" max="5" step="0.1" oninput="run()" title="Chuẩn: 1.5–2.5× buy-in. Cảnh báo nếu > 5×.">
       </div>
       <div class="col-span-2">
-        <label>Làm tròn giải thưởng</label>
+        <label title="Đơn vị làm tròn giải thưởng. Nhỏ = breakage ít, số xấu. Lớn = số đẹp, breakage nhiều.">Làm tròn giải thưởng <span style="opacity:.4">ⓘ</span></label>
         <select id="rounding" onchange="run()">
           <option value="10000"   selected>Chục nghìn   (10,000 ₫)</option>
           <option value="100000"          >Trăm nghìn  (100,000 ₫)</option>
@@ -236,7 +237,7 @@
       </div>
       <div class="stat-card c-grn">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
-          <div class="sl">Breakage</div>
+          <div class="sl" title="Breakage = Pool − Tổng giải. Dương: pool còn dư (vàng — cần cộng vào #1 hoặc giảm rounding). Âm: tổng vượt pool (đỏ — lỗi). Gần 0: cân bằng (xanh).">Breakage <span style="opacity:.5">ⓘ</span></div>
           <button class="btn-reset" id="resetBtn" onclick="resetOverrides()">↺ Reset</button>
         </div>
         <div class="sv" id="stBreak">—</div>
@@ -281,7 +282,7 @@
       <div class="sv" id="topPool" style="font-family:'JetBrains Mono','Courier New',monospace;font-size:14px;font-weight:600;margin-top:6px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
     </div>
     <div class="glass p-4" style="border-left:3px solid #3a8a4a;border-radius:var(--r-sm)">
-      <div class="sl" style="font-size:8.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--t3)">Breakage</div>
+      <div class="sl" style="font-size:8.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--t3)" title="Breakage = Pool − Tổng giải. Dương (vàng): pool còn dư — cân nhắc cộng vào #1. Âm (đỏ): tổng vượt pool. Gần 0 (xanh): cân bằng.">Breakage <span style="opacity:.5">ⓘ</span></div>
       <div class="sv" id="topBreak" style="font-family:'JetBrains Mono','Courier New',monospace;font-size:14px;font-weight:600;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
     </div>
     <div class="glass p-4" style="border-left:3px solid #9a6810;border-radius:var(--r-sm)">
@@ -329,6 +330,24 @@
           </svg>
           So sánh A/B
         </button>
+        <button class="btn-export" onclick="saveTourToHistory()" title="Lưu giải hiện tại vào lịch sử">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-4-7 4V5z"/>
+          </svg>
+          Lưu giải
+        </button>
+        <button class="btn-export" onclick="openTourHistory()" title="Xem lịch sử giải đã tính">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Lịch sử
+        </button>
+        <button class="btn-compact" id="compactBtn" onclick="toggleCompact()" title="Thu gọn / mở rộng bảng">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/>
+          </svg>
+          <span id="compactBtnLbl">Thu gọn</span>
+        </button>
         <button class="btn-print no-print" onclick="window.print()">
           <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
@@ -357,7 +376,6 @@
           <th>Hạng</th>
           <th>% Pool</th>
           <th class="th-gold">Thưởng (VNĐ) ✎</th>
-          <th class="th-shadow" id="thShadow" style="display:none">B — <span id="thShadowName">—</span></th>
           <th>Phân cấp</th>
           <th class="th-gold">Chênh lệch ↕</th>
         </tr></thead>
@@ -466,6 +484,20 @@
      config   → utils → engine → preset
      → table → inputs → storage → main
      ═══════════════════════════════════════════════ -->
-<script src="app.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/validation.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/warnings.js"></script>
+<script src="js/preset.js"></script>
+<script src="js/table.js"></script>
+<script src="js/inputs.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/state.js"></script>
+<script src="js/user-presets.js"></script>
+<script src="js/history.js"></script>
+<script src="js/tour-history.js"></script>
+<script src="js/compare.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
