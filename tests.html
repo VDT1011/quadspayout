@@ -27,7 +27,23 @@
 <script>
   window.document.getElementById = (id) => ({ value: '', checked: false, classList: { toggle: ()=>{}, add: ()=>{}, remove: ()=>{}, contains: ()=>false }, style: {}, querySelector: ()=>({classList:{toggle:()=>{}}}) });
 </script>
-<script src="app.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/validation.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/warnings.js"></script>
+<script src="js/preset.js"></script>
+<script src="js/table.js"></script>
+<script src="js/inputs.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/state.js"></script>
+<script src="js/user-presets.js"></script>
+<script src="js/history.js"></script>
+<script src="js/tour-history.js"></script>
+<script src="js/compare.js"></script>
+<script src="js/backup.js"></script>
+<script src="js/share.js"></script>
+<script src="js/main.js"></script>
 <script>
 (() => {
   const out = document.getElementById('out');
@@ -375,6 +391,167 @@
       eq(b.presets.length, 1);
       eq(b.presets[0].name, 'tmp');
       delete USER_PRESETS['tmp'];
+    });
+  });
+
+  /* ───── Display rows (group collapse) ───── */
+  describe('buildDisplayRows', () => {
+    const mkRes = (rank, amount, spct = 0) => ({ rank, amount, spct, floored: false });
+
+    it('individual ranks (≤indivN) luôn 1-row', () => {
+      const res = [mkRes(1, 100), mkRes(2, 80), mkRes(3, 60)];
+      const rows = buildDisplayRows(res, 9);
+      eq(rows.length, 3);
+      for (const r of rows) eq(r.count, 1);
+    });
+    it('group ranks cùng amount → collapse 1 row', () => {
+      const res = [
+        mkRes(1, 100), mkRes(2, 80),
+        mkRes(10, 50), mkRes(11, 50), mkRes(12, 50)
+      ];
+      const rows = buildDisplayRows(res, 9);
+      eq(rows.length, 3);
+      eq(rows[2].count, 3);
+      eq(rows[2].startRank, 10);
+      eq(rows[2].endRank, 12);
+    });
+    it('group ranks khác amount → mỗi cluster 1 row', () => {
+      const res = [
+        mkRes(10, 50), mkRes(11, 50),
+        mkRes(12, 40), mkRes(13, 40), mkRes(14, 40),
+        mkRes(15, 30)
+      ];
+      const rows = buildDisplayRows(res, 9);
+      eq(rows.length, 3);
+      eq(rows[0].count, 2);
+      eq(rows[1].count, 3);
+      eq(rows[2].count, 1);
+    });
+    it('OVR khác amount: KHÔNG re-collapse — display rows tính từ raw, override hiện riêng', () => {
+      const res = [mkRes(10, 50), mkRes(11, 50), mkRes(12, 50)];
+      const rows = buildDisplayRows(res, 9);
+      // raw amount giống nhau → vẫn 1 group (OVR check ở render layer, không ở buildDisplayRows)
+      eq(rows.length, 1);
+      eq(rows[0].count, 3);
+    });
+  });
+
+  /* ───── Override apply (buildAllAmts) ───── */
+  describe('buildAllAmts (OVR)', () => {
+    it('không có override → trả về amount gốc', () => {
+      OVR.clear();
+      CResults = [
+        { rank: 1, amount: 100, spct: 0, floored: false },
+        { rank: 2, amount: 80,  spct: 0, floored: false }
+      ];
+      const m = buildAllAmts();
+      eq(m[1], 100); eq(m[2], 80);
+    });
+    it('override 1 rank → giá trị đó được apply', () => {
+      OVR.clear();
+      OVR.set(1, 999);
+      CResults = [
+        { rank: 1, amount: 100, spct: 0, floored: false },
+        { rank: 2, amount: 80,  spct: 0, floored: false }
+      ];
+      const m = buildAllAmts();
+      eq(m[1], 999);
+      eq(m[2], 80);
+      OVR.clear();
+    });
+    it('override nhiều rank cùng group → mỗi rank giữ giá trị riêng', () => {
+      OVR.clear();
+      OVR.set(10, 55);
+      OVR.set(11, 60);
+      CResults = [
+        { rank: 10, amount: 50, spct: 0, floored: false },
+        { rank: 11, amount: 50, spct: 0, floored: false },
+        { rank: 12, amount: 50, spct: 0, floored: false }
+      ];
+      const m = buildAllAmts();
+      eq(m[10], 55); eq(m[11], 60); eq(m[12], 50);
+      OVR.clear();
+    });
+  });
+
+  /* ───── Share encode/decode ───── */
+  describe('share — base64 roundtrip', () => {
+    it('ASCII roundtrip ổn định', () => {
+      const s = 'hello-world_123';
+      eq(b64UrlDecode(b64UrlEncode(s)), s);
+    });
+    it('Unicode tiếng Việt roundtrip ổn định', () => {
+      const s = 'Quads Hà Nội — Phân giải đặc biệt 1,000,000 ₫';
+      eq(b64UrlDecode(b64UrlEncode(s)), s);
+    });
+    it('JSON state roundtrip', () => {
+      const obj = { v: 1, p: 'wsop', e: '200', o: { 1: 50_000_000, 2: 30_000_000 } };
+      const enc = b64UrlEncode(JSON.stringify(obj));
+      // URL-safe: không có +, /, =
+      assert(!/[+/=]/.test(enc), 'encoding chứa ký tự không safe: ' + enc);
+      const dec = JSON.parse(b64UrlDecode(enc));
+      eq(dec.v, 1); eq(dec.p, 'wsop');
+      eq(dec.o[1], 50_000_000);
+    });
+  });
+
+  /* ───── Compare (shadow preset) ───── */
+  describe('computeShadowResults', () => {
+    it('compare off → []', () => {
+      CMP.on = false;
+      CMP.shadowPreset = null;
+      CResults = [{ rank: 1, amount: 100, spct: 0, floored: false }];
+      eq(computeShadowResults().length, 0);
+    });
+    it('compare on nhưng CResults rỗng → []', () => {
+      CMP.on = true;
+      CMP.shadowPreset = 'wpt';
+      CResults = [];
+      eq(computeShadowResults().length, 0);
+    });
+    it('compare on, preset hợp lệ → trả về results dài bằng itmCount', () => {
+      // Setup giống main.run() đã chạy
+      CMP.on = true;
+      CMP.shadowPreset = 'apt';
+      CEntries = 200;
+      CPool = 1_000_000_000;
+      CRF = 10_000;
+      CResults = [];
+      // Dùng wsop tính 30 ranks rồi gán làm "A"
+      const { results: a } = buildPayout('wsop', 30, 1_000_000_000, 1_000_000, 10_000, 2.0);
+      CResults = a;
+      // Stub gNum tạm để computeShadowResults đọc buyin/minCash
+      const _gNum = window.gNum;
+      window.gNum = (id) => ({ buyin: 1_000_000, minCash: 2.0 }[id] || 0);
+      const shadow = computeShadowResults();
+      window.gNum = _gNum;
+      eq(shadow.length, 30);
+      // Cũng phải đi qua invariants
+      checkInvariants(shadow, 1_000_000_000, 10_000, 2_000_000, 'shadow-apt');
+      CMP.on = false;
+      CMP.shadowPreset = null;
+    });
+    it('shadowPresetLabel: built-in → uppercase', () => {
+      CMP.shadowPreset = 'wsop';
+      eq(shadowPresetLabel(), 'WSOP');
+      CMP.shadowPreset = null;
+    });
+    it('shadowPresetLabel: user preset → ★ name', () => {
+      CMP.shadowPreset = 'user:My Tour';
+      eq(shadowPresetLabel(), '★ My Tour');
+      CMP.shadowPreset = null;
+    });
+  });
+
+  /* ───── Backup format ───── */
+  describe('backup format', () => {
+    it('BACKUP_KEYS chứa tất cả storage keys quan trọng', () => {
+      assert(BACKUP_KEYS.includes(STORAGE_KEY), 'thiếu STORAGE_KEY');
+      assert(BACKUP_KEYS.includes(USER_PRESETS_KEY), 'thiếu USER_PRESETS_KEY');
+      assert(BACKUP_KEYS.includes(TOUR_HISTORY_KEY), 'thiếu TOUR_HISTORY_KEY');
+    });
+    it('BACKUP_FORMAT là chuỗi nhận diện được', () => {
+      assert(typeof BACKUP_FORMAT === 'string' && BACKUP_FORMAT.length > 0);
     });
   });
 

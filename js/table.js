@@ -85,6 +85,15 @@ function shadowCellFor(rank, amtA) {
   return `<td class="td-shadow">${fmtVND(amtB)}<span class="sh-delta ${cls}">${sign}${fmtVND(delta)}</span></td>`;
 }
 
+/* ── Chunked render: nếu quá nhiều display rows, render theo lô ── */
+const RENDER_CHUNK = 150;
+let RENDER_LIMIT = RENDER_CHUNK;
+
+function renderShowMore() {
+  RENDER_LIMIT += RENDER_CHUNK;
+  renderTable(CResults, CIndivN);
+}
+
 /**
  * Rebuild the entire <tbody> HTML from CResults + OVR.
  */
@@ -95,7 +104,12 @@ function renderTable(results, indivN) {
   const html = [];
   const showB = CMP.on && CMP.results.length > 0;
 
-  dRows.forEach(row => {
+  // Reset limit khi tổng rows nhỏ (giải mới load lại) để khỏi nhớ state lô cũ
+  if (dRows.length <= RENDER_CHUNK) RENDER_LIMIT = RENDER_CHUNK;
+  const visible = dRows.slice(0, RENDER_LIMIT);
+  const hidden  = dRows.length - visible.length;
+
+  visible.forEach(row => {
     const { startRank: sr, endRank: er, amount, count } = row;
     const rCls  = sr <= 3 ? `r${sr}` : '';
     const rkCls = sr <= 3 ? 'td-rank hi' : sr <= 9 ? 'td-rank mid' : 'td-rank';
@@ -183,7 +197,16 @@ ${showB ? shadowCellFor(sr, dA) : ''}
     }
   });
 
+  if (hidden > 0) {
+    const colSpan = showB ? 6 : 5;
+    html.push(`<tr class="show-more-row"><td colspan="${colSpan}" style="text-align:center;padding:14px;background:rgba(201,168,76,.05)">
+<button class="btn-export" onclick="renderShowMore()" style="font-size:11px">
+  ▼ Hiện thêm ${Math.min(RENDER_CHUNK, hidden)} hàng (còn ${hidden} ẩn)
+</button></td></tr>`);
+  }
+
   document.getElementById('tbody').innerHTML = html.join('');
+  if (typeof refreshTooltips === 'function') refreshTooltips();
 }
 
 /* ── Toggle group expand/collapse ── */

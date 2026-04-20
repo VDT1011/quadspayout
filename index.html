@@ -8,7 +8,20 @@
 </head>
 <body>
 <!-- Toast container -->
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<!-- Mobile drawer toggle (chỉ hiện <1024px) -->
+<button class="m-drawer-btn" id="mDrawerBtn" onclick="toggleMobileDrawer()" aria-label="Mở cấu hình">
+  <svg aria-hidden="true" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+  </svg>
+</button>
+<div class="m-drawer-backdrop" id="mDrawerBackdrop" onclick="toggleMobileDrawer()"></div>
+
+<!-- Theme toggle (luôn hiện) -->
+<button class="theme-toggle no-print" id="themeToggle" onclick="toggleTheme()" title="Đổi giao diện sáng / tối" aria-label="Toggle theme">
+  <span id="themeIcon">🌙</span>
+</button>
 
 <div class="layer px-4 md:px-8 py-8 max-w-7xl mx-auto">
 
@@ -31,7 +44,7 @@
 <main class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
 <!-- ══════ SIDEBAR ══════ -->
-<aside class="lg:col-span-4 space-y-5 f1">
+<aside class="lg:col-span-4 space-y-5 f1 m-drawer" id="mDrawer">
 
   <!-- PRESET CARD -->
   <div class="glass p-5">
@@ -140,10 +153,14 @@
               <button class="up-save" onclick="saveUserPresetPrompt()" title="Lưu cấu hình custom hiện tại thành preset có tên">
                 <span style="font-size:11px;line-height:1">💾</span> Lưu preset...
               </button>
-              <button class="up-icon" onclick="triggerImportPresets()" title="Nhập preset từ file .json">↑</button>
-              <button class="up-icon" onclick="exportAllUserPresets()" title="Xuất tất cả preset ra .json">↓</button>
-              <button class="up-icon" onclick="openBackupRestore()" title="Khôi phục từ auto-backup">↺</button>
+              <button class="up-icon" onclick="triggerImportPresets()" title="Nhập preset từ file .json" aria-label="Nhập preset từ file JSON">↑</button>
+              <button class="up-icon" onclick="exportAllUserPresets()" title="Xuất tất cả preset ra .json" aria-label="Xuất tất cả preset ra JSON">↓</button>
+              <button class="up-icon" onclick="openBackupRestore()" title="Khôi phục từ auto-backup" aria-label="Khôi phục preset từ auto-backup">↺</button>
+              <span aria-hidden="true" style="width:1px;height:14px;background:var(--bd);margin:0 2px;align-self:center"></span>
+              <button class="up-icon" onclick="exportFullBackup()" title="Backup TOÀN BỘ app (preset + lịch sử + state) ra file JSON" aria-label="Backup toàn bộ app ra file JSON" style="color:var(--gold)">⇩A</button>
+              <button class="up-icon" onclick="triggerImportFullBackup()" title="Khôi phục TOÀN BỘ app từ file backup (sẽ ghi đè dữ liệu hiện tại)" aria-label="Khôi phục toàn bộ app từ file backup" style="color:var(--gold)">⇧A</button>
               <input type="file" id="presetImportInput" accept="application/json,.json" style="display:none" onchange="handleImportFile(event)">
+              <input type="file" id="fullBackupInput" accept="application/json,.json" style="display:none" onchange="handleImportFullBackup(event)">
             </div>
           </div>
           <div id="userPresetList" class="up-list"></div>
@@ -168,13 +185,13 @@
     <!-- Pool mode toggle -->
     <div class="toggle-row">
       <label class="sw">
-        <input type="checkbox" id="poolMode" onchange="togglePoolMode()">
-        <span class="sw-track"></span>
+        <input type="checkbox" id="poolMode" onchange="togglePoolMode()" aria-label="Bật chế độ nhập pool trực tiếp">
+        <span class="sw-track" aria-hidden="true"></span>
       </label>
-      <span class="toggle-lbl">Nhập pool trực tiếp</span>
+      <label for="poolMode" class="toggle-lbl" style="cursor:pointer">Nhập pool trực tiếp</label>
     </div>
     <div class="pool-direct-wrap" id="poolDirectWrap">
-      <label>Prize Pool (nhập trực tiếp)</label>
+      <label for="directPool">Prize Pool (nhập trực tiếp)</label>
       <input type="text" id="directPool" value="" placeholder="vd: 100,000,000" oninput="fmtRun(this)">
       <div style="font-size:9px;color:var(--t4);margin-top:5px;line-height:1.5">Phí &amp; Rake không được tính khi dùng pool trực tiếp</div>
     </div>
@@ -183,11 +200,11 @@
     <div class="group-lbl">Field</div>
     <div class="grid grid-cols-2 gap-3 mb-3">
       <div>
-        <label title="Tổng số người chơi đăng ký (bao gồm re-entry). Quyết định pool và số rank ITM.">Số người tham dự <span style="opacity:.4">ⓘ</span></label>
+        <label for="entries" title="Tổng số người chơi đăng ký (bao gồm re-entry). Quyết định pool và số rank ITM.">Số người tham dự <span aria-hidden="true" style="opacity:.4">ⓘ</span></label>
         <input type="text" id="entries" value="200" oninput="fmtRun(this)" title="Tổng entries (người + re-entry). Vd: 200 người chơi, 30 re-entry → nhập 230.">
       </div>
       <div>
-        <label title="Giá vé mỗi người chơi, đã bao gồm rake. Pool = entries × (buy-in − rake) × (1 − vận hành%).">Buy-in (VNĐ) <span style="opacity:.4">ⓘ</span></label>
+        <label for="buyin" title="Giá vé mỗi người chơi, đã bao gồm rake. Pool = entries × (buy-in − rake) × (1 − vận hành%).">Buy-in (VNĐ) <span aria-hidden="true" style="opacity:.4">ⓘ</span></label>
         <input type="text" id="buyin" value="5,500,000" oninput="fmtRun(this)" title="Tổng tiền nộp mỗi entry (buy-in + rake). Không gồm tip/bounty.">
       </div>
     </div>
@@ -196,12 +213,12 @@
     <div class="group-lbl">Tài chính</div>
     <div class="grid grid-cols-2 gap-3 mb-3">
       <div id="rakeWrap">
-        <label title="Số tiền CLB thu/người, không vào prize pool. Cảnh báo nếu > 15% buy-in.">Rake / người (VNĐ) <span style="opacity:.4">ⓘ</span></label>
+        <label for="rake" title="Số tiền CLB thu/người, không vào prize pool. Cảnh báo nếu > 15% buy-in.">Rake / người (VNĐ) <span aria-hidden="true" style="opacity:.4">ⓘ</span></label>
         <input type="text" id="rake" value="500,000" oninput="fmtRun(this)" title="Rake cố định mỗi entry. Ở Pool trực tiếp, trường này bị tắt.">
       </div>
       <div id="staffWrap">
-        <label title="Phần trăm trích từ (pool sau rake) cho vận hành/dealer/staff.">Vận hành (%) <span style="opacity:.4">ⓘ</span></label>
-        <input type="number" id="staff" value="3" step="0.5" min="0" max="20" oninput="run()" title="0–20%. Trừ từ pool sau khi đã trừ rake.">
+        <label for="staff" title="Phần trăm trích từ (pool sau rake) cho vận hành/dealer/staff.">Vận hành (%) <span aria-hidden="true" style="opacity:.4">ⓘ</span></label>
+        <input type="number" id="staff" value="3" step="0.5" min="0" max="20" oninput="runDebounced(150)" title="0–20%. Trừ từ pool sau khi đã trừ rake.">
       </div>
     </div>
 
@@ -209,15 +226,15 @@
     <div class="group-lbl">Cấu trúc trả thưởng</div>
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label title="% field nhận tiền thưởng. WSOP ~15%, APT ~13%, Triton ~10%. Cảnh báo nếu > 30%.">ITM (%) <span style="opacity:.4">ⓘ</span></label>
-        <input type="number" id="itmPct" value="15" min="5" max="30" step="0.5" oninput="run()" title="Số rank ITM = round(entries × ITM%). Ví dụ 200 × 15% = 30 rank.">
+        <label for="itmPct" title="% field nhận tiền thưởng. WSOP ~15%, APT ~13%, Triton ~10%. Cảnh báo nếu > 30%.">ITM (%) <span aria-hidden="true" style="opacity:.4">ⓘ</span></label>
+        <input type="number" id="itmPct" value="15" min="5" max="30" step="0.5" oninput="runDebounced(150)" title="Số rank ITM = round(entries × ITM%). Ví dụ 200 × 15% = 30 rank.">
       </div>
       <div>
-        <label title="Sàn giải thưởng tối thiểu = multiplier × buy-in. Các rank thấp bị bump lên giá trị này.">Min Cash (× buy-in) <span style="opacity:.4">ⓘ</span></label>
-        <input type="number" id="minCash" value="2" min="1" max="5" step="0.1" oninput="run()" title="Chuẩn: 1.5–2.5× buy-in. Cảnh báo nếu > 5×.">
+        <label for="minCash" title="Sàn giải thưởng tối thiểu = multiplier × buy-in. Các rank thấp bị bump lên giá trị này.">Min Cash (× buy-in) <span aria-hidden="true" style="opacity:.4">ⓘ</span></label>
+        <input type="number" id="minCash" value="2" min="1" max="5" step="0.1" oninput="runDebounced(150)" title="Chuẩn: 1.5–2.5× buy-in. Cảnh báo nếu > 5×.">
       </div>
       <div class="col-span-2">
-        <label title="Đơn vị làm tròn giải thưởng. Nhỏ = breakage ít, số xấu. Lớn = số đẹp, breakage nhiều.">Làm tròn giải thưởng <span style="opacity:.4">ⓘ</span></label>
+        <label for="rounding" title="Đơn vị làm tròn giải thưởng. Nhỏ = breakage ít, số xấu. Lớn = số đẹp, breakage nhiều.">Làm tròn giải thưởng <span aria-hidden="true" style="opacity:.4">ⓘ</span></label>
         <select id="rounding" onchange="run()">
           <option value="10000"   selected>Chục nghìn   (10,000 ₫)</option>
           <option value="100000"          >Trăm nghìn  (100,000 ₫)</option>
@@ -238,7 +255,7 @@
       <div class="stat-card c-grn">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
           <div class="sl" title="Breakage = Pool − Tổng giải. Dương: pool còn dư (vàng — cần cộng vào #1 hoặc giảm rounding). Âm: tổng vượt pool (đỏ — lỗi). Gần 0: cân bằng (xanh).">Breakage <span style="opacity:.5">ⓘ</span></div>
-          <button class="btn-reset" id="resetBtn" onclick="resetOverrides()">↺ Reset</button>
+          <button class="btn-reset" id="resetBtn" onclick="resetOverrides()" aria-label="Reset tất cả sửa đổi thủ công">↺ Reset</button>
         </div>
         <div class="sv" id="stBreak">—</div>
       </div>
@@ -296,7 +313,7 @@
   </div>
 
   <!-- Warnings panel -->
-  <div id="warnPanel" class="warn-panel" style="display:none"></div>
+  <div id="warnPanel" class="warn-panel" role="region" aria-label="Cảnh báo cấu hình" aria-live="polite" style="display:none"></div>
 
   <!-- Payout table -->
   <div class="glass overflow-hidden">
@@ -309,47 +326,53 @@
     <div style="padding:12px 16px 0;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--bd2)">
      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div class="toolbar-row">
-        <button class="btn-hist disabled" id="undoBtn" onclick="performUndo()" title="Hoàn tác (Ctrl+Z)">↶</button>
-        <button class="btn-hist disabled" id="redoBtn" onclick="performRedo()" title="Làm lại (Ctrl+Y)">↷</button>
+        <button class="btn-hist disabled" id="undoBtn" onclick="performUndo()" title="Hoàn tác (Ctrl+Z)" aria-label="Hoàn tác">↶</button>
+        <button class="btn-hist disabled" id="redoBtn" onclick="performRedo()" title="Làm lại (Ctrl+Y)" aria-label="Làm lại">↷</button>
         <span style="width:1px;height:20px;background:var(--bd);margin:0 4px"></span>
         <button class="btn-export" onclick="exportCSV()">
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
           </svg>
           CSV
         </button>
         <button class="btn-brk disabled" id="brkBtn" onclick="applyBreakageToRank1()">
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7 7 7M12 3v18"/>
           </svg>
           Breakage → #1
         </button>
         <button class="btn-cmp" id="compareBtn" onclick="toggleCompareMode()" title="So sánh với preset khác">
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
           </svg>
           So sánh A/B
         </button>
         <button class="btn-export" onclick="saveTourToHistory()" title="Lưu giải hiện tại vào lịch sử">
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-4-7 4V5z"/>
           </svg>
           Lưu giải
         </button>
+        <button class="btn-export" onclick="generateShareUrl()" title="Tạo link chia sẻ — copy URL chứa toàn bộ state hiện tại">
+          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/>
+          </svg>
+          Share
+        </button>
         <button class="btn-export" onclick="openTourHistory()" title="Xem lịch sử giải đã tính">
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           Lịch sử
         </button>
         <button class="btn-compact" id="compactBtn" onclick="toggleCompact()" title="Thu gọn / mở rộng bảng">
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/>
           </svg>
           <span id="compactBtnLbl">Thu gọn</span>
         </button>
         <button class="btn-print no-print" onclick="window.print()">
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
           </svg>
           In
@@ -411,7 +434,7 @@
                 padding:8px 16px;text-decoration:none;transition:all .2s"
          onmouseover="this.style.background='rgba(201,168,76,.18)'"
          onmouseout="this.style.background='var(--gold-dim)'">
-        <svg width="14" height="14" fill="var(--gold)" viewBox="0 0 24 24">
+        <svg aria-hidden="true" width="14" height="14" fill="var(--gold)" viewBox="0 0 24 24">
           <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
         </svg>
         Facebook
@@ -423,7 +446,7 @@
                 padding:8px 16px;text-decoration:none;transition:all .2s"
          onmouseover="this.style.background='rgba(255,255,255,.08)'"
          onmouseout="this.style.background='rgba(255,255,255,.04)'">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg aria-hidden="true" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
           <circle cx="12" cy="11" r="3"/>
         </svg>
@@ -450,7 +473,7 @@
   <div class="modal">
     <div class="modal-head">
       <span id="presetDialogTitle">Preset</span>
-      <button class="modal-close" onclick="closePresetDialog()" title="Đóng">×</button>
+      <button class="modal-close" onclick="closePresetDialog()" title="Đóng" aria-label="Đóng dialog">×</button>
     </div>
     <div class="modal-body">
       <label class="modal-lbl">Tên preset <span class="req">*</span></label>
@@ -495,6 +518,9 @@
 <script src="js/storage.js"></script>
 <script src="js/state.js"></script>
 <script src="js/user-presets.js"></script>
+<script src="js/backup.js"></script>
+<script src="js/share.js"></script>
+<script src="js/tooltip.js"></script>
 <script src="js/history.js"></script>
 <script src="js/tour-history.js"></script>
 <script src="js/compare.js"></script>

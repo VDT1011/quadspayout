@@ -98,7 +98,8 @@ function run() {
   recalcBreakage();
 
   const now = new Date();
-  setT('printTitle', `Quads Hanoi — Payout ${CP.toUpperCase()} · ${entries} người · ${fmtVND(pool)}`);
+  const cmpSuffix = (CMP.on && CMP.results.length) ? ` · So sánh A=${CP.toUpperCase()} vs B=${shadowPresetLabel()}` : '';
+  setT('printTitle', `Quads Hanoi — Payout ${CP.toUpperCase()} · ${entries} người · ${fmtVND(pool)}${cmpSuffix}`);
   setT('printMeta',
     `In ngày ${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN')} · ` +
     `ITM: ${itmCount} người (${(itmPct * 100).toFixed(1)}%) · ` +
@@ -336,12 +337,53 @@ function toggleShortcutHelp() {
   document.body.appendChild(el);
 }
 
+/* ── Theme toggle (light/dark) ── */
+const THEME_KEY = 'quads_payout_theme_v1';
+
+function applyTheme(t) {
+  if (t === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  const ic = document.getElementById('themeIcon');
+  if (ic) ic.textContent = (t === 'light') ? '☀️' : '🌙';
+}
+
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  const next = cur === 'light' ? 'dark' : 'light';
+  applyTheme(next);
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+}
+
+function loadTheme() {
+  try {
+    const t = localStorage.getItem(THEME_KEY);
+    if (t === 'light') applyTheme('light'); else applyTheme('dark');
+  } catch (e) { applyTheme('dark'); }
+}
+
+/* ── Mobile drawer ── */
+function toggleMobileDrawer() {
+  const d = document.getElementById('mDrawer');
+  const b = document.getElementById('mDrawerBackdrop');
+  if (!d || !b) return;
+  const open = d.classList.toggle('open');
+  b.classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+
 /* ── Initialisation ── */
 window.addEventListener('DOMContentLoaded', () => {
+  loadTheme();
   loadUserPresets();
   renderUserPresets();
 
-  const hadSavedState = loadState();
+  // Nếu có ?s=... trên URL, ưu tiên apply trước. Nếu user đồng ý → ghi đè
+  // localStorage; nếu user huỷ → fall back về state thường.
+  const sharedApplied = (typeof tryApplySharedState === 'function') && tryApplySharedState();
+  const hadSavedState = sharedApplied || loadState();
 
   if (!hadSavedState) {
     const p = PRESETS[CP];
