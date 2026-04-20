@@ -23,6 +23,13 @@ function run() {
   const rf       = parseInt(document.getElementById('rounding').value, 10) || 10000;
   const useDirectPool = document.getElementById('poolMode').checked;
 
+  // Re-entry / add-on (optional). players clamp ≤ entries; addon 100% → pool.
+  const playersRaw = Math.round(gNum('players'));
+  const players    = playersRaw > 0 ? Math.min(playersRaw, entries) : 0;
+  const addon      = gNum('addon');
+  const addonBase  = players > 0 ? players : entries;
+  const addonTotal = Math.max(0, addon) * addonBase;
+
   CEntries = entries;
 
   let pool, totalDeduct;
@@ -37,7 +44,7 @@ function run() {
       return;
     }
   } else {
-    pool        = (entries * buyin - rake * entries) * (1 - staffPct);
+    pool        = (entries * buyin - rake * entries) * (1 - staffPct) + addonTotal;
     totalDeduct = (rake * entries) + (entries * buyin - rake * entries) * staffPct;
     if (pool <= 0) {
       renderTbodyEmpty('⚠️', 'Pool không hợp lệ',
@@ -60,7 +67,10 @@ function run() {
 
   setT('stPool',    fmtVND(pool));
   setT('stDeduct',  useDirectPool ? '—' : fmtVND(totalDeduct));
-  setT('stItm',     itmCount + ' người');
+  const reText = (players > 0 && entries > players)
+    ? ` · ${(entries / players).toFixed(2)}× re-entry`
+    : '';
+  setT('stItm',     itmCount + ' người' + reText);
   setT('stMin',     fmtVND(CMinCash));
   setT('topPool',   fmtVND(pool));
   setT('topDeduct', useDirectPool ? '—' : fmtVND(totalDeduct));
@@ -100,11 +110,15 @@ function run() {
   const now = new Date();
   const cmpSuffix = (CMP.on && CMP.results.length) ? ` · So sánh A=${CP.toUpperCase()} vs B=${shadowPresetLabel()}` : '';
   setT('printTitle', `Quads Hanoi — Payout ${CP.toUpperCase()} · ${entries} người · ${fmtVND(pool)}${cmpSuffix}`);
+  const playerMeta = (players > 0 && entries > players)
+    ? ` · ${players} người chơi (avg ${(entries / players).toFixed(2)} entries)` : '';
+  const addonMeta = (addonTotal > 0)
+    ? ` · Add-on: +${fmtVND(addonTotal)}` : '';
   setT('printMeta',
     `In ngày ${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN')} · ` +
     `ITM: ${itmCount} người (${(itmPct * 100).toFixed(1)}%) · ` +
     `Min Cash: ${fmtVND(CMinCash)} · ` +
-    `Làm tròn: ${rf.toLocaleString()}₫`
+    `Làm tròn: ${rf.toLocaleString()}₫` + playerMeta + addonMeta
   );
 
   saveState();
@@ -202,7 +216,7 @@ function updateCompareHeader() {
 
 /* ── Wire commit snapshots vào input/slider changes ── */
 function wireInputCommits() {
-  const textIds = ['entries','buyin','rake','staff','itmPct','minCash','directPool','slopeNum','grpStartNum','gDecayNum'];
+  const textIds = ['entries','players','addon','buyin','rake','staff','itmPct','minCash','directPool','slopeNum','grpStartNum','gDecayNum'];
   textIds.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;

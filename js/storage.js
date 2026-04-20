@@ -17,6 +17,8 @@ function saveState() {
     const s = {
       preset:      CP,
       entries:     document.getElementById('entries').value,
+      players:     document.getElementById('players')?.value || '',
+      addon:       document.getElementById('addon')?.value || '',
       buyin:       document.getElementById('buyin').value,
       rake:        document.getElementById('rake').value,
       staff:       document.getElementById('staff').value,
@@ -58,6 +60,8 @@ function loadState() {
     };
 
     set('entries',    s.entries);
+    set('players',    s.players);
+    set('addon',      s.addon);
     set('buyin',      s.buyin);
     set('rake',       s.rake);
     set('staff',      s.staff);

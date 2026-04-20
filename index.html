@@ -28,14 +28,15 @@
 <!-- ══════════════════════════════════════════════
      HEADER
      ══════════════════════════════════════════════ -->
-<header class="mb-10 text-center f1">
-  <div style="display:inline-flex;align-items:center;gap:10px;background:var(--gold-dim);border:1px solid var(--gold-bd);border-radius:20px;padding:4px 14px;margin-bottom:18px">
-    <span style="width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px rgba(201,168,76,.7);flex-shrink:0;animation:pulse 2.2s ease-in-out infinite"></span>
-    <span style="font-size:8.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)">Payout Engine v1.2</span>
+<header class="mb-6 f1 hdr-compact">
+  <div class="hdr-left">
+    <h1>Quads Hanoi Poker Club</h1>
+    <p class="hdr-sub">Tournament Payout Calculator</p>
   </div>
-  <h1>Quads Hanoi<br>Poker Club</h1>
-  <p class="hdr-sub" style="letter-spacing:.38em;margin-top:10px">Tournament Payout Calculator</p>
-  <div class="gold-rule w-48 mx-auto mt-6 opacity-40"></div>
+  <div class="hdr-badge">
+    <span class="hdr-dot" aria-hidden="true"></span>
+    <span>Payout Engine v1.2</span>
+  </div>
 </header>
 
 <!-- ══════════════════════════════════════════════
@@ -47,7 +48,7 @@
 <aside class="lg:col-span-4 space-y-5 f1 m-drawer" id="mDrawer">
 
   <!-- PRESET CARD -->
-  <div class="glass p-5">
+  <div class="glass p-5" data-accordion="preset">
     <div class="sec-title">Cấu trúc giải <span class="save-dot" id="saveDot" title="Auto-saved"></span></div>
 
     <!-- WPT -->
@@ -155,15 +156,28 @@
               </button>
               <button class="up-icon" onclick="triggerImportPresets()" title="Nhập preset từ file .json" aria-label="Nhập preset từ file JSON">↑</button>
               <button class="up-icon" onclick="exportAllUserPresets()" title="Xuất tất cả preset ra .json" aria-label="Xuất tất cả preset ra JSON">↓</button>
-              <button class="up-icon" onclick="openBackupRestore()" title="Khôi phục từ auto-backup" aria-label="Khôi phục preset từ auto-backup">↺</button>
-              <span aria-hidden="true" style="width:1px;height:14px;background:var(--bd);margin:0 2px;align-self:center"></span>
-              <button class="up-icon" onclick="exportFullBackup()" title="Backup TOÀN BỘ app (preset + lịch sử + state) ra file JSON" aria-label="Backup toàn bộ app ra file JSON" style="color:var(--gold)">⇩A</button>
-              <button class="up-icon" onclick="triggerImportFullBackup()" title="Khôi phục TOÀN BỘ app từ file backup (sẽ ghi đè dữ liệu hiện tại)" aria-label="Khôi phục toàn bộ app từ file backup" style="color:var(--gold)">⇧A</button>
+              <button class="up-icon" onclick="openBackupRestore()" title="Khôi phục preset từ auto-backup" aria-label="Khôi phục preset từ auto-backup">↺</button>
               <input type="file" id="presetImportInput" accept="application/json,.json" style="display:none" onchange="handleImportFile(event)">
-              <input type="file" id="fullBackupInput" accept="application/json,.json" style="display:none" onchange="handleImportFullBackup(event)">
             </div>
           </div>
           <div id="userPresetList" class="up-list"></div>
+        </div>
+
+        <!-- ── Full app backup (preset + lịch sử + state) ── -->
+        <div class="bk-section">
+          <div class="bk-head">
+            <span class="bk-title">Backup toàn bộ app</span>
+            <span class="bk-desc">Preset + lịch sử + state</span>
+          </div>
+          <div class="bk-actions">
+            <button class="bk-btn" onclick="exportFullBackup()" title="Xuất TOÀN BỘ dữ liệu app ra file JSON">
+              <span>⇩</span> Xuất backup
+            </button>
+            <button class="bk-btn" onclick="triggerImportFullBackup()" title="Khôi phục TOÀN BỘ app từ file backup (sẽ ghi đè dữ liệu hiện tại)">
+              <span>⇧</span> Khôi phục
+            </button>
+            <input type="file" id="fullBackupInput" accept="application/json,.json" style="display:none" onchange="handleImportFullBackup(event)">
+          </div>
         </div>
       </div>
     </div>
@@ -179,7 +193,7 @@
   </div>
 
   <!-- PARAMS CARD -->
-  <div class="glass p-5">
+  <div class="glass p-5" data-accordion="params">
     <div class="sec-title">Thông số giải</div>
 
     <!-- Pool mode toggle -->
@@ -206,6 +220,19 @@
       <div>
         <label for="buyin" title="Giá vé mỗi người chơi, đã bao gồm rake. Pool = entries × (buy-in − rake) × (1 − vận hành%).">Buy-in (VNĐ) <span aria-hidden="true" style="opacity:.4">ⓘ</span></label>
         <input type="text" id="buyin" value="5,500,000" oninput="fmtRun(this)" title="Tổng tiền nộp mỗi entry (buy-in + rake). Không gồm tip/bounty.">
+      </div>
+    </div>
+
+    <!-- Re-entry & Add-on (optional) -->
+    <div class="group-lbl">Re-entry · Add-on <span style="color:var(--t4);font-weight:400;letter-spacing:0;text-transform:none">(tuỳ chọn)</span></div>
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div>
+        <label for="players" title="Số người chơi thực tế (unique, không tính re-entry). Để trống nếu entries = players.">Người chơi unique <span aria-hidden="true" style="opacity:.4">ⓘ</span></label>
+        <input type="text" id="players" value="" placeholder="để trống = không tách" oninput="fmtRun(this)" title="Unique players. Hiển thị 'X× re-entry/người' khi < entries.">
+      </div>
+      <div>
+        <label for="addon" title="Add-on per người (VNĐ). Cộng 100% vào pool, không trừ rake/staff.">Add-on/người (VNĐ) <span aria-hidden="true" style="opacity:.4">ⓘ</span></label>
+        <input type="text" id="addon" value="" placeholder="0" oninput="fmtRun(this)" title="Mỗi add-on × (players hoặc entries) cộng trực tiếp vào pool.">
       </div>
     </div>
 
@@ -245,7 +272,7 @@
   </div>
 
   <!-- STATS CARD -->
-  <div class="glass p-5">
+  <div class="glass p-5" data-accordion="stats">
     <div class="sec-title">Tổng quan</div>
     <div class="grid grid-cols-2 gap-2">
       <div class="stat-card c-sky">
@@ -329,12 +356,8 @@
         <button class="btn-hist disabled" id="undoBtn" onclick="performUndo()" title="Hoàn tác (Ctrl+Z)" aria-label="Hoàn tác">↶</button>
         <button class="btn-hist disabled" id="redoBtn" onclick="performRedo()" title="Làm lại (Ctrl+Y)" aria-label="Làm lại">↷</button>
         <span style="width:1px;height:20px;background:var(--bd);margin:0 4px"></span>
-        <button class="btn-export" onclick="exportCSV()">
-          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
-          </svg>
-          CSV
-        </button>
+
+        <!-- Primary actions -->
         <button class="btn-brk disabled" id="brkBtn" onclick="applyBreakageToRank1()">
           <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7 7 7M12 3v18"/>
@@ -347,39 +370,72 @@
           </svg>
           So sánh A/B
         </button>
-        <button class="btn-export" onclick="saveTourToHistory()" title="Lưu giải hiện tại vào lịch sử">
-          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-4-7 4V5z"/>
-          </svg>
-          Lưu giải
-        </button>
-        <button class="btn-export" onclick="generateShareUrl()" title="Tạo link chia sẻ — copy URL chứa toàn bộ state hiện tại">
-          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/>
-          </svg>
-          Share
-        </button>
-        <button class="btn-export" onclick="openTourHistory()" title="Xem lịch sử giải đã tính">
-          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          Lịch sử
-        </button>
         <button class="btn-compact" id="compactBtn" onclick="toggleCompact()" title="Thu gọn / mở rộng bảng">
           <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/>
           </svg>
           <span id="compactBtnLbl">Thu gọn</span>
         </button>
-        <button class="btn-print no-print" onclick="window.print()">
-          <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
-          </svg>
-          In
-        </button>
+
+        <span style="width:1px;height:20px;background:var(--bd);margin:0 4px"></span>
+
+        <!-- Data menu: Lưu giải + Lịch sử -->
+        <div class="tb-menu" data-menu="data">
+          <button class="tb-menu-btn" onclick="toggleTbMenu('data')" aria-haspopup="menu" aria-expanded="false">
+            <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H6a2 2 0 00-2 2z"/>
+            </svg>
+            Dữ liệu <span class="caret">▼</span>
+          </button>
+          <div class="tb-menu-pop" role="menu">
+            <button class="tb-menu-item" role="menuitem" onclick="saveTourToHistory();closeTbMenus()">
+              <svg aria-hidden="true" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-4-7 4V5z"/>
+              </svg>
+              <span><span class="mi-lbl">Lưu giải</span><span class="mi-desc">Bookmark giải hiện tại</span></span>
+            </button>
+            <button class="tb-menu-item" role="menuitem" onclick="openTourHistory();closeTbMenus()">
+              <svg aria-hidden="true" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span><span class="mi-lbl">Lịch sử</span><span class="mi-desc">Xem các giải đã lưu</span></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Export menu: CSV + Share + In -->
+        <div class="tb-menu" data-menu="export">
+          <button class="tb-menu-btn" onclick="toggleTbMenu('export')" aria-haspopup="menu" aria-expanded="false">
+            <svg aria-hidden="true" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            Xuất <span class="caret">▼</span>
+          </button>
+          <div class="tb-menu-pop" role="menu">
+            <button class="tb-menu-item" role="menuitem" onclick="exportCSV();closeTbMenus()">
+              <svg aria-hidden="true" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+              </svg>
+              <span><span class="mi-lbl">CSV</span><span class="mi-desc">Xuất bảng ra .csv</span></span>
+            </button>
+            <button class="tb-menu-item" role="menuitem" onclick="generateShareUrl();closeTbMenus()">
+              <svg aria-hidden="true" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/>
+              </svg>
+              <span><span class="mi-lbl">Share link</span><span class="mi-desc">Copy URL chứa state</span></span>
+            </button>
+            <button class="tb-menu-item" role="menuitem" onclick="closeTbMenus();setTimeout(()=>window.print(),50)">
+              <svg aria-hidden="true" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
+              </svg>
+              <span><span class="mi-lbl">In</span><span class="mi-desc">Print bảng payout</span></span>
+            </button>
+          </div>
+        </div>
+
         <button class="btn-reset" id="resetBtn2" onclick="resetOverrides()" style="display:none">↺ Reset sửa</button>
       </div>
-      <span style="font-size:8px;color:var(--t4);letter-spacing:.06em;padding-bottom:12px">Click số tiền để sửa &nbsp;·&nbsp; Click nhóm để mở &nbsp;·&nbsp; Enter xác nhận &nbsp;·&nbsp; Esc huỷ</span>
+      <span style="font-size:8px;color:var(--t4);letter-spacing:.06em;padding-bottom:12px">Click số tiền để sửa &nbsp;·&nbsp; Click nhóm để mở &nbsp;·&nbsp; Chuột phải / giữ (mobile) để mở menu nhanh &nbsp;·&nbsp; Enter xác nhận &nbsp;·&nbsp; Esc huỷ</span>
      </div>
 
      <div class="compare-row" id="compareRow">
@@ -524,6 +580,7 @@
 <script src="js/history.js"></script>
 <script src="js/tour-history.js"></script>
 <script src="js/compare.js"></script>
+<script src="js/ctx-menu.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

@@ -125,3 +125,79 @@ function refreshTooltips() {
 }
 
 window.addEventListener('DOMContentLoaded', initTooltips);
+
+/* ═══════════════════════════════════════════════════════
+   TOOLBAR DROPDOWN — click toggle, outside-click close
+   ═══════════════════════════════════════════════════════ */
+function closeTbMenus() {
+  document.querySelectorAll('.tb-menu.open').forEach(m => {
+    m.classList.remove('open');
+    const btn = m.querySelector('.tb-menu-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function toggleTbMenu(name) {
+  const target = document.querySelector('.tb-menu[data-menu="' + name + '"]');
+  if (!target) return;
+  const isOpen = target.classList.contains('open');
+  closeTbMenus();
+  if (!isOpen) {
+    target.classList.add('open');
+    const btn = target.querySelector('.tb-menu-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+  }
+}
+
+document.addEventListener('click', ev => {
+  if (!ev.target.closest('.tb-menu')) closeTbMenus();
+}, true);
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape') closeTbMenus();
+});
+
+window.toggleTbMenu = toggleTbMenu;
+window.closeTbMenus = closeTbMenus;
+
+/* ═══════════════════════════════════════════════════════
+   SIDEBAR ACCORDION — click sec-title to collapse/expand
+   State persisted per key in localStorage.
+   ═══════════════════════════════════════════════════════ */
+const ACC_KEY = 'payout.accordion.v1';
+
+function readAccState() {
+  try { return JSON.parse(localStorage.getItem(ACC_KEY) || '{}'); }
+  catch { return {}; }
+}
+function writeAccState(s) {
+  try { localStorage.setItem(ACC_KEY, JSON.stringify(s)); } catch {}
+}
+
+function initAccordion() {
+  const saved = readAccState();
+  document.querySelectorAll('.glass[data-accordion]').forEach(card => {
+    const key = card.getAttribute('data-accordion');
+    if (saved[key]) card.classList.add('collapsed');
+    const title = card.querySelector(':scope > .sec-title');
+    if (!title) return;
+    title.setAttribute('role', 'button');
+    title.setAttribute('tabindex', '0');
+    title.setAttribute('aria-expanded', card.classList.contains('collapsed') ? 'false' : 'true');
+    const toggle = () => {
+      card.classList.toggle('collapsed');
+      const s = readAccState();
+      s[key] = card.classList.contains('collapsed');
+      writeAccState(s);
+      title.setAttribute('aria-expanded', card.classList.contains('collapsed') ? 'false' : 'true');
+    };
+    title.addEventListener('click', ev => {
+      // Không toggle nếu click vào control con (save-dot, button trong title)
+      if (ev.target !== title && ev.target.closest('button, input, a')) return;
+      toggle();
+    });
+    title.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); }
+    });
+  });
+}
+window.addEventListener('DOMContentLoaded', initAccordion);

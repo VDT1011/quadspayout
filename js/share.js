@@ -18,6 +18,8 @@ function buildShareState() {
     v:  SHARE_VERSION,
     p:  (typeof CP !== 'undefined') ? CP : 'wsop',
     e:  document.getElementById('entries').value,
+    pl: document.getElementById('players')?.value || '',
+    ao: document.getElementById('addon')?.value || '',
     b:  document.getElementById('buyin').value,
     rk: document.getElementById('rake').value,
     sf: document.getElementById('staff').value,
@@ -127,6 +129,8 @@ function applySharedState(s) {
   };
 
   set('entries',          s.e);
+  set('players',          s.pl);
+  set('addon',            s.ao);
   set('buyin',            s.b);
   set('rake',             s.rk);
   set('staff',            s.sf);

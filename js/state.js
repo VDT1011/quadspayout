@@ -15,6 +15,8 @@ function readStateFromDOM() {
   return {
     preset:      CP,
     entries:     g('entries').value,
+    players:     g('players')?.value || '',
+    addon:       g('addon')?.value || '',
     buyin:       g('buyin').value,
     rake:        g('rake').value,
     staff:       g('staff').value,
@@ -39,6 +41,8 @@ function applyStateToDOM(s) {
   const set = (id, v) => { if (v != null && document.getElementById(id)) document.getElementById(id).value = v; };
 
   set('entries',    s.entries);
+  set('players',    s.players);
+  set('addon',      s.addon);
   set('buyin',      s.buyin);
   set('rake',       s.rake);
   set('staff',      s.staff);
